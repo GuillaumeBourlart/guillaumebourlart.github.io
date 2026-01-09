@@ -20,6 +20,7 @@ export default function Navigation() {
     { name: 'Accueil', href: '#home' },
     { name: 'Parcours', href: '#roadmap' },
     { name: 'Apps', href: '#apps' },
+    { name: 'Pawder 📄', href: '/pawder/CGU' },
     { name: 'Contact', href: '#contact' },
   ]
 
@@ -55,7 +56,13 @@ export default function Navigation() {
             {navItems.map((item) => (
               <motion.button
                 key={item.name}
-                onClick={() => scrollTo(item.href)}
+                onClick={() => {
+                  if (item.href.startsWith('/')) {
+                    window.location.href = item.href
+                  } else {
+                    scrollTo(item.href)
+                  }
+                }}
                 whileHover={{ scale: 1.1 }}
                 whileTap={{ scale: 0.95 }}
                 className="text-gray-300 hover:text-white transition-colors font-medium"
@@ -88,7 +95,13 @@ export default function Navigation() {
               {navItems.map((item) => (
                 <button
                   key={item.name}
-                  onClick={() => scrollTo(item.href)}
+                  onClick={() => {
+                    if (item.href.startsWith('/')) {
+                      window.location.href = item.href
+                    } else {
+                      scrollTo(item.href)
+                    }
+                  }}
                   className="block w-full text-left px-4 py-2 text-gray-300 hover:text-white hover:bg-slate-800 rounded-lg transition-colors"
                 >
                   {item.name}
