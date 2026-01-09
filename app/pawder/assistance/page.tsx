@@ -134,7 +134,7 @@ Allez dans **Paramètres > Compte > Supprimer mon compte**.
 
 Allez dans **Paramètres > Compte > Abonnement Premium**.  
  Vous pouvez gérer ou résilier votre abonnement depuis cette section, ou directement sur iOS :  
-* **Réglages > [Votre nom] > Abonnements**.
+ **Réglages > [Votre nom] > Abonnements**.
 
 ### **Mes favoris et mon historique sont-ils synchronisés ?**
 
@@ -236,7 +236,7 @@ Pour toute question non résolue, vous pouvez consulter :
 
 ## **About Pawder**
 
-**Pawder** is a community app where you can **vote for the cutest pets** and **create a profile for your companion**. Compete in weekly rankings and the **Hall of Fame** to help your pet climb the leaderboard!
+**Pawder** is a community app where you can **vote for cutest pets** and **create a profile for your companion**. Compete in weekly rankings and the **Hall of Fame** to help your pet climb the leaderboard!
 
 ---
 
@@ -484,7 +484,7 @@ export default function AssistancePage() {
                 {language === 'fr' ? 'Assistance Pawder' : 'Pawder Help'}
               </h1>
               <p className="text-gray-600">
-                {language === 'fr' ? 'Guide d'utilisation et FAQ' : 'User Guide & FAQ'}
+                {language === 'fr' ? 'Guide d\'utilisation et FAQ' : 'User Guide & FAQ'}
               </p>
             </div>
           </div>
