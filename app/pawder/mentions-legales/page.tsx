@@ -48,7 +48,7 @@ const mentionsContent = {
 **Mountain View, CA 94043**  
 **États-Unis**
 
-**Des pages web associées au Service peuvent être hébergées via Firebase Hosting (par exemple sous un domaine \*.web.app ou toute autre URL utilisée par l'Éditeur).**
+**Des pages web associées au Service peuvent être hébergées via Firebase Hosting (par exemple sous un domaine *.web.app ou toute autre URL utilisée par l'Éditeur).**
 
 ---
 
@@ -164,7 +164,7 @@ const mentionsContent = {
 **Mountain View, CA 94043**  
 **United States**
 
-**Service-related web pages may be hosted using Firebase Hosting (for example under a \*.web.app domain or any other URL used by the Publisher).**
+**Service-related web pages may be hosted using Firebase Hosting (for example under a *.web.app domain or any other URL used by the Publisher).**
 
 ---
 
@@ -203,7 +203,7 @@ const mentionsContent = {
 * **account creation;**  
 * **user content and moderation rules;**  
 * **Premium subscription and In-App Purchases;**  
-* **limitations of liability.**
+* **limitations of Publisher's liability.**
 
 **By installing and using the App, you acknowledge that you have read and accepted the Terms of Use.**
 
@@ -217,7 +217,7 @@ const mentionsContent = {
 
 * **temporary malfunctions, interruptions, or unavailability of the Service;**  
 * **damages resulting from use of the Service or inability to use it;**  
-* **user-posted content, which remains the sole responsibility of the users.**
+* **user-posted content, which remains the sole responsibility of users.**
 
 ---
 
