@@ -6,6 +6,7 @@ export interface App {
   iconUrl?: string
   screenshots?: string[]
   category: string
+  projectType: 'studio' | 'client'
   featured?: boolean
 }
 
@@ -13,6 +14,7 @@ export interface App {
 export const apps: App[] = [
   {
     id: '1',
+    projectType: 'studio',
     name: 'Pawder',
     description:
       'Des animaux à découvrir, des votes et un classement. Faites une place à vos compagnons préférés.',
@@ -24,6 +26,7 @@ export const apps: App[] = [
   },
   {
     id: '2',
+    projectType: 'studio',
     name: 'Reflexe Master',
     description:
       'Mettez vos réflexes à l’épreuve et relevez le défi du meilleur score. À vous de jouer.',
@@ -35,6 +38,7 @@ export const apps: App[] = [
   },
   {
     id: '3',
+    projectType: 'studio',
     name: 'Do it fast!',
     description:
       'Faites deviner des mots à votre équipe. Un jeu à sortir en soirée pour partager un moment ensemble.',
@@ -46,6 +50,7 @@ export const apps: App[] = [
   },
   {
     id: '4',
+    projectType: 'studio',
     name: 'Whose face',
     description:
       'Un visage connu, un nom qui vous échappe ? Retrouvez une célébrité à partir d’une photo.',
@@ -57,6 +62,7 @@ export const apps: App[] = [
   },
   {
     id: '5',
+    projectType: 'client',
     name: 'Yams Love',
     description:
       'Le plaisir du yams sur mobile. Lancez les dés, composez vos combinaisons et tentez votre chance.',
@@ -68,6 +74,7 @@ export const apps: App[] = [
   },
   {
     id: '6',
+    projectType: 'client',
     name: 'Archidex',
     description:
       'Explorez l’architecture autour de vous et capturez vos découvertes. Une autre façon de regarder le monde.',
@@ -79,3 +86,7 @@ export const apps: App[] = [
   },
 ]
 
+export const studioApps = apps.filter(app => app.projectType === 'studio')
+export const clientApps = apps
+  .filter(app => app.projectType === 'client')
+  .sort((a, b) => Number(Boolean(b.featured)) - Number(Boolean(a.featured)))

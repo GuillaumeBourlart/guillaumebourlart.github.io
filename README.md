@@ -60,9 +60,9 @@ Voir [docs/DOMAINE.md](docs/DOMAINE.md) pour le diagnostic DNS et les valeurs n�
 
 ## Organisation du contenu
 
-- `/` : les six applications du studio, leurs galeries de captures, les services et le contact.
+- `/` : quatre applications du studio, deux réalisations clients (Archidex et Yams Love), leurs galeries de captures, les services et le contact.
 - `/a-propos/` : présentation de Guillaume Bourlart et de son parcours.
 - `/estimation/` : questionnaire de budget et de délai, conservé avec ses règles de calcul.
 - `/pawder/` : assistance et documents légaux de l’application.
 
-Les applications et leurs liens App Store se modifient dans `data/apps.ts`. La charte du site (ivoire, vert profond et citron) se trouve dans `app/globals.css`. Les captures restent dans `public/screenshots/`.
+Les applications et leurs liens App Store se modifient dans `data/apps.ts`. Le champ `projectType` distingue les applications du studio (`studio`) des développements réalisés pour des clients (`client`). La charte du site (ivoire, vert profond et citron) se trouve dans `app/globals.css`. Les captures restent dans `public/screenshots/`.

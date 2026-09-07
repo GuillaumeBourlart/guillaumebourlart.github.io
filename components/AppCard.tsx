@@ -14,9 +14,10 @@ export default function AppCard({ app, index }: { app: App; index: number }) {
       <div className="app-details">
         <div className="app-title-row">
           {app.iconUrl && <Image src={app.iconUrl} width={52} height={52} alt="" className="app-icon" />}
-          <div><p className="app-platform">Application iOS</p><h3 id={`app-title-${app.id}`}>{app.name}</h3></div>
+          <div><p className={`app-platform ${app.projectType === 'client' ? 'app-client-label' : ''}`}>{app.projectType === 'client' ? 'Application d’un client' : 'Application du studio'}</p><h3 id={`app-title-${app.id}`}>{app.name}</h3></div>
         </div>
         <p className="app-description">{app.description}</p>
+        {app.projectType === 'client' && <p className="app-credit">Rôle : développement iOS en prestation.</p>}
         <div className="app-links">
           <a className="text-link" href={app.appStoreUrl} target="_blank" rel="noopener noreferrer" aria-label={`Découvrir ${app.name} sur l’App Store (nouvel onglet)`}>Voir sur l’App Store <ArrowUpRight size={17} aria-hidden="true" /></a>
           {app.id === '1' && <Link className="app-support" href="/pawder/assistance/">Assistance</Link>}

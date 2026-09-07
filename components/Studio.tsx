@@ -12,9 +12,9 @@ export default function Studio() {
     <section id="studio" className="studio-section" aria-labelledby="studio-title">
       <div className="site-container studio-grid">
         <div className="studio-intro">
-          <p className="eyebrow">02 / Le studio</p>
+          <p className="eyebrow">03 / Le studio</p>
           <h2 id="studio-title">L’esprit joueur.<br />Le goût de <span>créer.</span></h2>
-          <p>Mobiverse Games est un studio indépendant qui imagine et développe ses propres applications et jeux mobiles.</p>
+          <p>Mobiverse Games est un studio indépendant qui crée ses propres applications et jeux mobiles, et développe des applications pour ses clients.</p>
           <p>Cette expérience de création nourrit aussi les projets confiés au studio : une idée à préciser, une application à développer, un univers à faire découvrir.</p>
           <Link href="/a-propos/" className="text-link">Rencontrez le créateur du studio <ArrowUpRight size={18} aria-hidden="true" /></Link>
         </div>

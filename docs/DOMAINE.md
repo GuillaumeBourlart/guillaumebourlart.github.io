@@ -2,7 +2,7 @@
 
 ## HTTPS et état du DNS au 7 septembre 2026
 
-Le domaine est configuré dans les paramètres GitHub Pages. `public/CNAME` en conserve une copie dans l'export du site. La publication utilise GitHub Actions ; les paramètres Pages restent la référence pour le domaine personnalisé. Le certificat HTTPS est fourni gratuitement et automatiquement par GitHub Pages via Let's Encrypt.
+Le domaine est configuré dans les paramètres GitHub Pages. `public/CNAME` en conserve une copie dans l'export du site. La publication utilise GitHub Actions ; les paramètres Pages restent la référence pour le domaine personnalisé. Le certificat HTTPS est fourni gratuitement et automatiquement par GitHub Pages via Let's Encrypt. Le 7 septembre 2026, GitHub a confirmé son émission pour `mobiversegames.com` et `www.mobiversegames.com`. La validation TLS a réussi et **Enforce HTTPS** a été activé ; le contrôle DNS GitHub affiche **DNS check successful**.
 
 La configuration a été vérifiée directement auprès d'IONOS et via les résolveurs publics Cloudflare et Google :
 
@@ -36,7 +36,7 @@ Aucun enregistrement `AAAA` n'est nécessaire pour activer le HTTPS. Si IPv6 est
 
 Conserver les entrées de messagerie (MX, SPF, DKIM, DMARC). Il n'est pas nécessaire de réinitialiser toute la zone ni de changer les serveurs de noms pour pointer le site vers GitHub Pages.
 
-GitHub peut encore voir les anciennes adresses pendant la propagation DNS, même si IONOS et les résolveurs publics affichent les bonnes valeurs. Après propagation, retourner dans les paramètres Pages du dépôt, cliquer sur **Check again**, puis activer **Enforce HTTPS** dès que le certificat est disponible. GitHub indique qu'une propagation DNS peut prendre jusqu'à 24 heures. Il n'est pas nécessaire d'acheter un certificat SSL chez IONOS.
+Lors d’une future modification DNS, GitHub peut temporairement voir les anciennes adresses pendant la propagation. En cas de problème, vérifier le contrôle DNS et le réglage **Enforce HTTPS** dans les paramètres Pages du dépôt. GitHub indique qu'une propagation DNS peut prendre jusqu'à 24 heures. Il n'est pas nécessaire d'acheter un certificat SSL chez IONOS.
 
 ## Documentation
 

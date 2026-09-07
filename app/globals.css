@@ -114,7 +114,7 @@ button, a { touch-action: manipulation; }
 .section-heading { display: flex; justify-content: space-between; align-items: end; gap: 48px; margin-bottom: 48px; }
 .section-heading h2 { font-size: clamp(38px, 4.2vw, 60px); letter-spacing: -.055em; font-weight: 500; line-height: 1.07; margin-top: 20px; }
 .section-heading > p { max-width: 365px; color: var(--muted); font-size: 15px; line-height: 1.85; }
-.apps-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); column-gap: 28px; row-gap: 56px; }
+.apps-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 28px; row-gap: 56px; }
 .app-card { min-width: 0; display: flex; flex-direction: column; scroll-margin-top: 115px; }
 .app-visual { background: #e6ebd6; border-radius: 18px; padding: 20px 20px 12px; overflow: hidden; }
 .app-theme-2 .app-visual { background: #e4e0f0; }
@@ -135,6 +135,8 @@ button, a { touch-action: manipulation; }
 .app-details { display: flex; flex-direction: column; flex: 1; padding: 24px 2px 0; }
 .app-title-row { display: flex; align-items: center; gap: 14px; }
 .app-icon { border-radius: 13px; width: 52px; height: 52px; }
+.app-client-label { font-weight: 600; }
+.app-credit { font-size: 13px; line-height: 1.7; color: var(--ink); border-top: 1px solid var(--line); padding-top: 14px; margin-bottom: 18px; }
 .app-platform { font-size: 11px; color: var(--muted); margin-bottom: 4px; }
 .app-title-row h3 { font-size: clamp(23px, 2vw, 29px); line-height: 1.15; font-weight: 600; letter-spacing: -1px; }
 .app-description { color: var(--muted); font-size: 14px; line-height: 1.85; margin-block: 18px 20px; flex: 1; }
