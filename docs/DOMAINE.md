@@ -2,7 +2,7 @@
 
 ## Diagnostic du 7 septembre 2026
 
-GitHub Pages connaît le domaine via le fichier `CNAME` sur `main`. L'erreur `NotServedByPagesError` indique que le DNS ne pointe pas vers GitHub Pages.
+Le domaine est configuré dans les paramètres GitHub Pages. `public/CNAME` en conserve une copie dans l'export du site. La publication utilise désormais GitHub Actions ; les paramètres Pages restent la référence pour le domaine personnalisé. L'erreur `NotServedByPagesError` indique que le DNS ne pointe pas vers GitHub Pages.
 
 Enregistrements publics observés :
 
