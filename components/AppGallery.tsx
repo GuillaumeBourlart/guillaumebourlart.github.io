@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import Image from 'next/image'
+import IPhoneMockup from './IPhoneMockup'
 import { ArrowLeft, ArrowRight } from 'lucide-react'
 
 export default function AppGallery({ screenshots, name }: { screenshots: string[]; name: string }) {
@@ -14,7 +14,7 @@ export default function AppGallery({ screenshots, name }: { screenshots: string[
         move(event.key === 'ArrowLeft' ? -1 : 1)
       }
     }}>
-      <div className="app-screen"><Image src={screenshots[current]} fill sizes="(max-width: 560px) 54vw, 190px" alt={`${name} — capture ${current + 1} sur ${screenshots.length}`} className="app-screenshot" /></div>
+      <div className="app-screen"><IPhoneMockup src={screenshots[current]} sizes="(max-width: 560px) 210px, 200px" alt={`${name} — capture ${current + 1} sur ${screenshots.length}`} /></div>
       {screenshots.length > 1 && <div className="gallery-controls">
         <button onClick={() => move(-1)} aria-label={`Capture précédente de ${name}`}><ArrowLeft size={18} aria-hidden="true" /></button>
         <span aria-live="polite" aria-atomic="true">{String(current + 1).padStart(2, '0')} <span aria-hidden="true">/</span><span className="sr-only">sur</span> {String(screenshots.length).padStart(2, '0')}</span>

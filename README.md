@@ -65,4 +65,10 @@ Voir [docs/DOMAINE.md](docs/DOMAINE.md) pour le diagnostic DNS et les valeurs n�
 - `/estimation/` : questionnaire de budget et de délai, conservé avec ses règles de calcul.
 - `/pawder/` : assistance et documents légaux de l’application.
 
-Les applications et leurs liens App Store se modifient dans `data/apps.ts`. Le champ `projectType` distingue les applications du studio (`studio`) des développements réalisés pour des clients (`client`). La charte du site (ivoire, vert profond et citron) se trouve dans `app/globals.css`. Les captures restent dans `public/screenshots/`.
+Les applications et leurs liens App Store se modifient dans `data/apps.ts`. Le champ `projectType` distingue les applications du studio (`studio`) des développements réalisés pour des clients (`client`). La charte du site (ivoire, vert profond et citron) se trouve dans `app/globals.css`. Les captures restent dans `public/screenshots/`. Le composant `components/IPhoneMockup.tsx` les présente dans le cadre transparent `public/mockup_iphone.png`, aussi bien sur l’accueil que dans les galeries.
+
+## Supprimer la copie locale
+
+Le site publié fonctionne sur GitHub Pages, indépendamment de ce dossier. Après un push réussi sur `main` et un déploiement confirmé, la copie locale peut être supprimée si aucune modification ni fichier personnel non sauvegardé ne subsiste. Pour retravailler sur le site, utiliser les commandes de récupération ci-dessus.
+
+Git conserve les sources, les ressources et la configuration. Les dossiers `node_modules/`, `.next/` et `out/`, ainsi que `next-env.d.ts`, sont générés à nouveau par l’installation et la compilation. Les fichiers `.DS_Store` sont des métadonnées du Finder.
