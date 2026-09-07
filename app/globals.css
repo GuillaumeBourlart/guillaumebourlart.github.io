@@ -127,7 +127,7 @@ button, a { touch-action: manipulation; }
 .iphone-mockup { position: relative; width: 100%; aspect-ratio: 1 / 2; filter: drop-shadow(0 15px 12px #25372838); }
 /* Insets follow the transparent screen opening of the supplied 2500 × 5000 frame. */
 .iphone-display { position: absolute; inset: 1.05% 2.6% 1.05% 3.2%; border-radius: 13% / 6.3%; overflow: hidden; background: #000; }
-.iphone-screenshot { object-fit: contain; }
+.iphone-screenshot { object-fit: cover; object-position: center; }
 .iphone-frame { z-index: 1; object-fit: contain; pointer-events: none; }
 .gallery-controls { display: flex; align-items: center; justify-content: space-between; width: 100%; margin-top: 18px; }
 .gallery-controls button { display: flex; align-items: center; justify-content: center; width: 44px; height: 44px; border-radius: 50%; transition: background .2s; }

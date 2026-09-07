@@ -7,7 +7,7 @@ interface IPhoneMockupProps {
   priority?: boolean
 }
 
-/** The original transparent iPhone frame sits above the complete app screenshot. */
+/** The transparent iPhone frame overlays a screenshot cropped to fill its screen. */
 export default function IPhoneMockup({ src, alt, sizes, priority = false }: IPhoneMockupProps) {
   return (
     <div className="iphone-mockup">
