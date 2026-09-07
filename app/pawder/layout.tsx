@@ -1,8 +1,8 @@
 import { ReactNode } from 'react'
 
 export const metadata = {
-  title: 'Pawder - Documents légaux',
-  description: 'Documents légaux de l\'application Pawder',
+  title: 'Pawder — Assistance et documents légaux',
+  description: 'Assistance et documents légaux de Pawder, une application de Mobiverse Games.',
 }
 
 export default function PawderLayout({

@@ -31,12 +31,12 @@ export default function AppsSection() {
           </motion.div>
           <h2 className="text-4xl md:text-5xl font-bold mb-4">
             <span className="bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">
-              Mes Applications
+              Applications & jeux
             </span>
           </h2>
           <p className="text-gray-400 text-lg max-w-2xl mx-auto">
-            Découvrez les applications iOS que j'ai créées, chacune avec son
-            propre style et ses fonctionnalités uniques
+            Explorez les applications et les jeux de Mobiverse Games,
+            chacun avec son univers et son expérience.
           </p>
         </motion.div>
 
@@ -107,4 +107,3 @@ export default function AppsSection() {
     </section>
   )
 }
-

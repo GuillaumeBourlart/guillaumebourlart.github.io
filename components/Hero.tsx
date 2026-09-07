@@ -80,7 +80,7 @@ export default function Hero() {
             className="text-5xl md:text-7xl font-bold mb-4"
           >
             <span className="bg-gradient-to-r from-blue-400 via-cyan-400 to-blue-600 bg-clip-text text-transparent animate-gradient bg-200%">
-              Guillaume Bourlart
+              Mobiverse Games
             </span>
           </motion.h1>
 
@@ -90,7 +90,7 @@ export default function Hero() {
             transition={{ delay: 0.4, duration: 0.8 }}
             className="text-xl md:text-2xl text-gray-300 mb-8"
           >
-            Développeur iOS
+            Applications iOS & jeux mobiles
           </motion.p>
 
           <motion.p
@@ -99,7 +99,8 @@ export default function Hero() {
             transition={{ delay: 0.6, duration: 0.8 }}
             className="text-lg text-gray-400 max-w-2xl mx-auto mb-12"
           >
-            Je crée des applications iOS (et occasionnellement des sites selon le contexte) en étant au maximum à l'écoute de mes clients.
+            Un studio indépendant qui donne vie à des applications et des jeux
+            mobiles, et accompagne vos projets iOS et web avec une approche sur mesure.
           </motion.p>
 
           <motion.div
@@ -118,7 +119,7 @@ export default function Hero() {
               whileTap={{ scale: 0.95 }}
               className="group flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-full text-white font-semibold shadow-lg shadow-blue-500/50 hover:shadow-xl hover:shadow-blue-500/50 transition-all"
             >
-              Découvrir mes apps
+              Découvrir les applications
               <ArrowDown className="w-5 h-5 group-hover:translate-y-1 transition-transform" />
             </motion.button>
 
@@ -151,4 +152,3 @@ export default function Hero() {
     </section>
   )
 }
-

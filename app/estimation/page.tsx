@@ -944,7 +944,7 @@ export default function EstimationPage() {
         <div className="flex flex-wrap items-center justify-between gap-4 mb-10">
           <Link href="/" className="inline-flex items-center gap-2 text-blue-200 hover:text-white transition-colors">
             <ArrowLeft className="w-4 h-4" />
-            Retour au portfolio
+            Retour à Mobiverse Games
           </Link>
           <button
             onClick={() => setResponses({})}
@@ -1047,11 +1047,11 @@ export default function EstimationPage() {
         <section className="mt-10 bg-slate-800/40 border border-slate-700 rounded-2xl p-6 md:p-8">
           <h3 className="text-2xl font-bold mb-3">
             <span className="bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">
-              Me contacter
+              Contacter Mobiverse Games
             </span>
           </h3>
           <p className="text-slate-300 mb-6">
-            Vous pouvez m'envoyer votre besoin directement via l'un de ces canaux.
+            Présentez votre projet à Mobiverse Games via le canal de votre choix.
           </p>
           <div className="flex flex-wrap gap-4">
             {contactLinks.map((social) => (

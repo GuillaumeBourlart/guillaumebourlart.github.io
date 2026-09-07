@@ -5,19 +5,27 @@ import './globals.css'
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'Guillaume Bourlart - Développeur iOS',
-  description: 'Portfolio de Guillaume Bourlart, développeur iOS passionné. Découvrez mes applications iOS innovantes et élégantes.',
-  keywords: ['iOS', 'développeur iOS', 'Swift', 'SwiftUI', 'applications iOS', 'Guillaume Bourlart'],
-  authors: [{ name: 'Guillaume Bourlart' }],
+  metadataBase: new URL('https://mobiversegames.com'),
+  title: {
+    default: 'Mobiverse Games — Applications iOS & jeux mobiles',
+    template: '%s | Mobiverse Games',
+  },
+  description: 'Mobiverse Games, studio indépendant de création d’applications iOS et de jeux mobiles. Découvrez les réalisations du studio et donnez vie à votre projet.',
+  keywords: ['Mobiverse Games', 'jeux mobiles', 'applications iOS', 'développement iOS', 'Swift', 'SwiftUI', 'studio indépendant'],
+  authors: [{ name: 'Mobiverse Games' }],
+  creator: 'Mobiverse Games',
+  publisher: 'Mobiverse Games',
   openGraph: {
-    title: 'Guillaume Bourlart - Développeur iOS',
-    description: 'Portfolio de Guillaume Bourlart, développeur iOS passionné',
+    title: 'Mobiverse Games — Applications iOS & jeux mobiles',
+    description: 'Studio indépendant de création d’applications iOS et de jeux mobiles. Découvrez les réalisations de Mobiverse Games.',
+    siteName: 'Mobiverse Games',
+    locale: 'fr_FR',
     type: 'website',
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Guillaume Bourlart - Développeur iOS',
-    description: 'Portfolio de Guillaume Bourlart, développeur iOS passionné',
+    title: 'Mobiverse Games — Applications iOS & jeux mobiles',
+    description: 'Studio indépendant de création d’applications iOS et de jeux mobiles. Découvrez les réalisations de Mobiverse Games.',
   },
 }
 
@@ -32,4 +40,3 @@ export default function RootLayout({
     </html>
   )
 }
-

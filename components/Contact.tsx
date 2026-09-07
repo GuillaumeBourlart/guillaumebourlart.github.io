@@ -52,12 +52,12 @@ export default function Contact() {
         >
           <h2 className="text-4xl md:text-5xl font-bold mb-4">
             <span className="bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">
-              Restons en contact
+              Parlons de votre projet
             </span>
           </h2>
           <p className="text-gray-400 text-lg mb-12">
-            N'hésitez pas à me contacter pour discuter de projets ou de
-            collaborations
+            Contactez Mobiverse Games pour discuter d'une application, d'un jeu
+            mobile, d'un site web ou d'une collaboration.
           </p>
 
           <motion.div
@@ -106,7 +106,7 @@ export default function Contact() {
           className="mt-16 pt-8 border-t border-slate-800"
         >
           <p className="text-gray-500">
-            © {new Date().getFullYear()} Guillaume Bourlart. Tous droits
+            © {new Date().getFullYear()} Mobiverse Games. Tous droits
             réservés.
           </p>
         </motion.div>
@@ -114,4 +114,3 @@ export default function Contact() {
     </section>
   )
 }
-

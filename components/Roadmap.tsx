@@ -65,11 +65,13 @@ export default function Roadmap() {
         >
           <h2 className="text-4xl md:text-5xl font-bold mb-4">
             <span className="bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">
-              Mon Parcours
+              Le parcours derrière le studio
             </span>
           </h2>
           <p className="text-gray-400 text-lg max-w-2xl mx-auto">
-            Mes formations me confèrent assez d'expérience pour être capable de m'adapter aux demandes et de satisfaire mes clients.
+            Mobiverse Games est porté par un développeur indépendant formé au web
+            et à iOS. Un parcours au service de projets pensés avec soin, de l'idée
+            à leur réalisation.
           </p>
         </motion.div>
 
@@ -140,4 +142,3 @@ export default function Roadmap() {
     </section>
   )
 }
-

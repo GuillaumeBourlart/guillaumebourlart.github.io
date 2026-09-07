@@ -51,7 +51,7 @@ export default function Navigation() {
                 isPawderPage ? 'text-purple-600' : 'text-white'
               }`}
             >
-              Guillaume Bourlart
+              Mobiverse Games
             </Link>
 
             {/* Navigation desktop */}

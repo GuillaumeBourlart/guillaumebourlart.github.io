@@ -1,4 +1,4 @@
-# Dossier Public - Images et Assets
+# Mobiverse Games — Images et ressources statiques
 
 Ce dossier contient tous les fichiers statiques qui seront servis directement par Next.js.
 
@@ -46,4 +46,3 @@ Une fois les images ajoutées, mettez à jour les chemins dans `data/apps.ts` :
 ## Exemple
 
 Si vous placez `pawder-icon.png` dans `public/icons/`, le chemin sera `/icons/pawder-icon.png`.
-

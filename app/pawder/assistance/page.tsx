@@ -315,13 +315,13 @@ export default function AssistancePage() {
           <LanguageToggle onLanguageChange={setLanguage} />
         </div>
 
-        {/* Portfolio Button */}
+        {/* Mobiverse Games link */}
         <Link
           href="/"
           className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors duration-200"
         >
           <ExternalLink className="w-4 h-4" />
-          {language === 'fr' ? 'Voir mon portfolio' : 'See my portfolio'}
+          {language === 'fr' ? 'Découvrir Mobiverse Games' : 'Discover Mobiverse Games'}
         </Link>
       </div>
 

@@ -1,6 +1,6 @@
-# Portfolio de Guillaume Bourlart
+# Mobiverse Games
 
-Code source du portfolio Next.js, de la page d'estimation et des pages Pawder.
+Code source du site Mobiverse Games : présentation du studio, applications et jeux mobiles, estimation de projets et pages Pawder. Le site utilise Next.js, TypeScript et Tailwind CSS.
 
 ## Où est la version complète ?
 
@@ -14,8 +14,8 @@ Le code source était auparavant conservé sur le Mac, tandis que les fichiers d
 Installer Git et Node.js 22 (version de validation indiquée dans `.nvmrc`), puis :
 
 ```bash
-git clone https://github.com/GuillaumeBourlart/guillaumebourlart.github.io.git portfolio
-cd portfolio
+git clone https://github.com/GuillaumeBourlart/guillaumebourlart.github.io.git mobiverse-games
+cd mobiverse-games
 npm ci
 npm run dev
 ```
