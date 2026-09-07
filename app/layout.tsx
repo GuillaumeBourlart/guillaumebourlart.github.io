@@ -10,14 +10,14 @@ export const metadata: Metadata = {
     default: 'Mobiverse Games — Applications iOS & jeux mobiles',
     template: '%s | Mobiverse Games',
   },
-  description: 'Mobiverse Games, studio indépendant de création d’applications iOS et de jeux mobiles. Découvrez les réalisations du studio et donnez vie à votre projet.',
+  description: 'Mobiverse Games, studio indépendant de création d’applications iOS et de jeux mobiles. Découvrez Pawder, Reflexe Master, Archidex et les autres applications du studio.',
   keywords: ['Mobiverse Games', 'jeux mobiles', 'applications iOS', 'développement iOS', 'Swift', 'SwiftUI', 'studio indépendant'],
   authors: [{ name: 'Mobiverse Games' }],
   creator: 'Mobiverse Games',
   publisher: 'Mobiverse Games',
   openGraph: {
     title: 'Mobiverse Games — Applications iOS & jeux mobiles',
-    description: 'Studio indépendant de création d’applications iOS et de jeux mobiles. Découvrez les réalisations de Mobiverse Games.',
+    description: 'Studio indépendant de création d’applications iOS et de jeux mobiles. Explorez les applications et les jeux créés par Mobiverse Games.',
     siteName: 'Mobiverse Games',
     locale: 'fr_FR',
     type: 'website',
@@ -25,7 +25,7 @@ export const metadata: Metadata = {
   twitter: {
     card: 'summary_large_image',
     title: 'Mobiverse Games — Applications iOS & jeux mobiles',
-    description: 'Studio indépendant de création d’applications iOS et de jeux mobiles. Découvrez les réalisations de Mobiverse Games.',
+    description: 'Studio indépendant de création d’applications iOS et de jeux mobiles. Explorez les applications et les jeux créés par Mobiverse Games.',
   },
 }
 

@@ -2,6 +2,8 @@
 
 import { useMemo, useState } from 'react'
 import Link from 'next/link'
+import Navigation from '@/components/Navigation'
+import Footer from '@/components/Footer'
 import { motion } from 'framer-motion'
 import { ArrowLeft, Briefcase, Calculator, Copy, Globe, Linkedin, Mail, RefreshCcw } from 'lucide-react'
 
@@ -778,18 +780,18 @@ export default function EstimationPage() {
         key={question.id}
         initial={{ opacity: 0, y: 15 }}
         animate={{ opacity: 1, y: 0 }}
-        className="bg-slate-800/40 border border-slate-700 rounded-2xl p-5 md:p-6"
+        className="bg-white/60 border border-[#d8ddd2] rounded-2xl p-5 md:p-6"
       >
         {showUnlockHint && (
-          <p className="text-cyan-300 text-xs mb-3">
+          <p className="text-[#4d6b2b] text-xs mb-3">
             Commencez par cette question pour débloquer le reste du formulaire.
           </p>
         )}
         <h2 className="text-lg md:text-xl font-semibold mb-2">
           {question.number}. {question.title}
         </h2>
-        {question.description && <p className="text-slate-400 mb-4 text-sm">{question.description}</p>}
-        {question.multi && <p className="text-cyan-300 text-xs mb-4">Plusieurs choix possibles</p>}
+        {question.description && <p className="text-[#61695f] mb-4 text-sm">{question.description}</p>}
+        {question.multi && <p className="text-[#4d6b2b] text-xs mb-4">Plusieurs choix possibles</p>}
 
         <div className="grid sm:grid-cols-2 gap-3">
           {question.options.map((option) => {
@@ -799,16 +801,17 @@ export default function EstimationPage() {
               <button
                 key={option.value}
                 type="button"
+                aria-pressed={selected}
                 onClick={() => (question.multi ? updateMulti(question, option.value) : updateSingle(question.id, option.value))}
                 className={`text-left px-4 py-3 rounded-xl border transition-all ${
                   selected
-                    ? 'border-cyan-300 bg-gradient-to-r from-blue-500/40 to-cyan-500/40 text-white'
-                    : 'border-slate-600 bg-slate-900/40 text-slate-200 hover:border-slate-400'
+                    ? 'border-[#17251f] bg-[#d9fa68] text-[#17251f]'
+                    : 'border-[#bdc5b5] bg-white/70 text-[#354330] hover:border-[#809863]'
                 }`}
               >
                 <span>{option.label}</span>
                 {option.recommended && (
-                  <span className="ml-2 inline-flex items-center px-2 py-0.5 text-[11px] rounded-full bg-cyan-500/20 border border-cyan-300/50 text-cyan-200">
+                  <span className="ml-2 inline-flex items-center px-2 py-0.5 text-[11px] rounded-full bg-[#e6edda] border border-[#bbcba4] text-[#405b23]">
                     recommandé
                   </span>
                 )}
@@ -939,37 +942,39 @@ export default function EstimationPage() {
   }, [responses, visibleQuestions])
 
   return (
-    <main className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 text-white">
+    <>
+      <Navigation />
+      <main id="main-content" className="min-h-screen bg-[#f5f5ef] text-[#17251f]">
       <div className="max-w-5xl mx-auto px-4 py-12 md:py-16">
         <div className="flex flex-wrap items-center justify-between gap-4 mb-10">
-          <Link href="/" className="inline-flex items-center gap-2 text-blue-200 hover:text-white transition-colors">
+          <Link href="/" className="inline-flex items-center gap-2 text-[#4d6b2b] hover:text-[#17251f] transition-colors">
             <ArrowLeft className="w-4 h-4" />
             Retour à Mobiverse Games
           </Link>
           <button
             onClick={() => setResponses({})}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-slate-600 text-slate-200 hover:border-blue-400 hover:text-white transition-colors"
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-[#bdc5b5] text-[#354330] hover:border-[#17251f] hover:text-[#17251f] transition-colors"
           >
             <RefreshCcw className="w-4 h-4" />
             Réinitialiser
           </button>
         </div>
 
-        <div className="bg-slate-800/50 backdrop-blur-sm rounded-2xl border border-slate-700 p-6 md:p-8 mb-10">
+        <div className="bg-white/60 backdrop-blur-sm rounded-2xl border border-[#d8ddd2] p-6 md:p-8 mb-10">
           <div className="flex items-center gap-3 mb-3">
-            <Calculator className="w-6 h-6 text-cyan-300" />
-            <p className="text-cyan-200 uppercase tracking-wide text-sm">Estimation automatique</p>
+            <Calculator className="w-6 h-6 text-[#4d6b2b]" />
+            <p className="text-[#4d6b2b] uppercase tracking-wide text-sm">Estimation automatique</p>
           </div>
           <h1 className="text-3xl md:text-5xl font-bold mb-4">
-            <span className="bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">
+            <span className="text-[#17251f]">
               Obtenir une estimation
             </span>
           </h1>
-          <p className="text-slate-300">
+          <p className="text-[#61695f]">
             Répondez aux 20 questions pour obtenir une fourchette de budget et de délai.
             L'estimation reste indicative et sera confirmée après échange.
           </p>
-          <p className="text-slate-400 mt-3 text-sm">
+          <p className="text-[#61695f] mt-3 text-sm">
             Progression : {progress.answered}/{progress.total} questions
           </p>
         </div>
@@ -978,9 +983,9 @@ export default function EstimationPage() {
           {renderQuestionCard(projectTypeQuestion, !projectType)}
 
           {projectType && (
-            <section className="bg-slate-800/40 border border-slate-700 rounded-2xl p-6">
+            <section className="bg-white/60 border border-[#d8ddd2] rounded-2xl p-6">
               <h2 className="text-xl font-semibold mb-2">Besoin d'aide pour répondre ?</h2>
-              <p className="text-slate-300 text-sm mb-4">
+              <p className="text-[#61695f] text-sm mb-4">
                 Copiez ce prompt puis collez-le dans un chat IA externe au site (ChatGPT, Claude, etc.).
                 Il vous aidera à répondre simplement au questionnaire, sauf les questions personnelles à remplir vous-même.
               </p>
@@ -991,8 +996,8 @@ export default function EstimationPage() {
                   disabled={!helperPrompt}
                   className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg border transition-colors ${
                     helperPrompt
-                      ? 'border-cyan-300 text-cyan-200 hover:bg-cyan-500/10'
-                      : 'border-slate-600 text-slate-500 cursor-not-allowed'
+                      ? 'border-[#809863] text-[#4d6b2b] hover:bg-[#e6edda]'
+                      : 'border-[#bdc5b5] text-[#788271] cursor-not-allowed'
                   }`}
                 >
                   <Copy className="w-4 h-4" />
@@ -1000,9 +1005,10 @@ export default function EstimationPage() {
                 </button>
               </div>
               <textarea
+                aria-label="Texte d’aide à copier pour préparer vos réponses"
                 value={helperPrompt}
                 readOnly
-                className="w-full h-56 bg-slate-900/60 border border-slate-600 rounded-xl p-4 text-sm text-slate-200"
+                className="w-full h-56 bg-[#f5f5ef] border border-[#bdc5b5] rounded-xl p-4 text-sm text-[#354330]"
               />
             </section>
           )}
@@ -1012,23 +1018,23 @@ export default function EstimationPage() {
 
         <div className="mt-10">
           {estimation ? (
-            <section className="bg-gradient-to-r from-blue-900/70 to-cyan-900/60 border border-cyan-400/30 rounded-2xl p-6 md:p-8">
+            <section className="bg-[#e6edda] border border-[#bbcba4] rounded-2xl p-6 md:p-8">
               <h3 className="text-2xl font-bold mb-4">Résultat estimatif</h3>
-              <p className="text-slate-200 mb-2">Budget estimé : <span className="font-semibold text-white">{estimation.minPrice.toLocaleString('fr-FR')} € à {estimation.maxPrice.toLocaleString('fr-FR')} €</span></p>
-              <p className="text-slate-200 mb-2">Délai estimé : <span className="font-semibold text-white">{estimation.minDays} à {estimation.maxDays} jours</span></p>
-              <p className="text-slate-300 text-sm mb-4">Marge d'incertitude appliquée : {Math.round(estimation.marginRate * 100)}%</p>
-              <p className="text-slate-300 text-sm mb-4">Optimisation IA intégrée (ChatGPT / Claude) : -{Math.round((1 - estimation.aiAcceleration) * 100)}% sur le temps brut.</p>
+              <p className="text-[#354330] mb-2">Budget estimé : <span className="font-semibold text-[#17251f]">{estimation.minPrice.toLocaleString('fr-FR')} € à {estimation.maxPrice.toLocaleString('fr-FR')} €</span></p>
+              <p className="text-[#354330] mb-2">Délai estimé : <span className="font-semibold text-[#17251f]">{estimation.minDays} à {estimation.maxDays} jours</span></p>
+              <p className="text-[#61695f] text-sm mb-4">Marge d'incertitude appliquée : {Math.round(estimation.marginRate * 100)}%</p>
+              <p className="text-[#61695f] text-sm mb-4">Optimisation IA intégrée (ChatGPT / Claude) : -{Math.round((1 - estimation.aiAcceleration) * 100)}% sur le temps brut.</p>
               {estimation.complexProject && (
-                <p className="text-cyan-100 bg-slate-900/40 border border-cyan-400/30 rounded-xl px-4 py-3 mb-4">
+                <p className="text-[#354330] bg-white/70 border border-[#bbcba4] rounded-xl px-4 py-3 mb-4">
                   Projet complexe : l'estimation initiale démarre généralement à partir de 5 000 €.
                 </p>
               )}
 
-              <div className="pt-4 border-t border-slate-600">
-                <p className="text-slate-200 font-medium mb-2">Principaux postes de charge :</p>
+              <div className="pt-4 border-t border-[#bdc5b5]">
+                <p className="text-[#354330] font-medium mb-2">Principaux postes de charge :</p>
                 <div className="grid md:grid-cols-2 gap-2 text-sm">
                   {estimation.breakdown.map((line) => (
-                    <p key={line.label} className="text-slate-300">
+                    <p key={line.label} className="text-[#61695f]">
                       {line.label} : +{line.days} j
                     </p>
                   ))}
@@ -1036,21 +1042,21 @@ export default function EstimationPage() {
               </div>
             </section>
           ) : (
-            <section className="bg-slate-800/50 border border-slate-700 rounded-2xl p-6">
-              <p className="text-slate-300">
+            <section className="bg-white/60 border border-[#d8ddd2] rounded-2xl p-6">
+              <p className="text-[#61695f]">
                 Complétez toutes les questions pour afficher votre estimation.
               </p>
             </section>
           )}
         </div>
 
-        <section className="mt-10 bg-slate-800/40 border border-slate-700 rounded-2xl p-6 md:p-8">
+        <section className="mt-10 bg-white/60 border border-[#d8ddd2] rounded-2xl p-6 md:p-8">
           <h3 className="text-2xl font-bold mb-3">
-            <span className="bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">
+            <span className="text-[#17251f]">
               Contacter Mobiverse Games
             </span>
           </h3>
-          <p className="text-slate-300 mb-6">
+          <p className="text-[#61695f] mb-6">
             Présentez votre projet à Mobiverse Games via le canal de votre choix.
           </p>
           <div className="flex flex-wrap gap-4">
@@ -1062,16 +1068,18 @@ export default function EstimationPage() {
                 rel="noopener noreferrer"
                 whileHover={{ scale: 1.05, y: -3 }}
                 whileTap={{ scale: 0.97 }}
-                className={`group relative bg-gradient-to-r ${social.color} p-5 rounded-2xl shadow-lg hover:shadow-xl transition-all min-w-[120px] text-center`}
+                className="group relative bg-[#e6edda] p-5 rounded-2xl hover:bg-[#d9fa68] transition-colors min-w-[120px] text-center"
               >
-                <social.icon className="w-7 h-7 text-white mx-auto mb-2" />
-                <p className="text-white font-semibold">{social.label}</p>
+                <social.icon className="w-7 h-7 text-[#17251f] mx-auto mb-2" />
+                <p className="text-[#17251f] font-semibold">{social.label}</p>
                 <div className="absolute inset-0 bg-white/10 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity" />
               </motion.a>
             ))}
           </div>
         </section>
       </div>
-    </main>
+      </main>
+      <Footer />
+    </>
   )
 }

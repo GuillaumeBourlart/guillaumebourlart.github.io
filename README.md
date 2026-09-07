@@ -1,6 +1,6 @@
 # Mobiverse Games
 
-Code source du site Mobiverse Games : présentation du studio, applications et jeux mobiles, estimation de projets et pages Pawder. Le site utilise Next.js, TypeScript et Tailwind CSS.
+Code source du site de présentation de Mobiverse Games : applications et jeux mobiles, studio, page À propos de Guillaume Bourlart, estimation de projets et pages Pawder. Le site utilise Next.js, TypeScript et Tailwind CSS.
 
 ## Où est la version complète ?
 
@@ -57,3 +57,12 @@ Le workflow utilise la version de Node.js indiquée dans `.nvmrc`. Il peut aussi
 ## Domaine personnalisé
 
 Voir [docs/DOMAINE.md](docs/DOMAINE.md) pour le diagnostic DNS et les valeurs nécessaires à GitHub Pages. Le domaine et les e-mails se configurent chez le fournisseur DNS ; supprimer la copie locale du projet ne change pas ces services.
+
+## Organisation du contenu
+
+- `/` : les six applications du studio, leurs galeries de captures, les services et le contact.
+- `/a-propos/` : présentation de Guillaume Bourlart et de son parcours.
+- `/estimation/` : questionnaire de budget et de délai, conservé avec ses règles de calcul.
+- `/pawder/` : assistance et documents légaux de l’application.
+
+Les applications et leurs liens App Store se modifient dans `data/apps.ts`. La charte du site (ivoire, vert profond et citron) se trouve dans `app/globals.css`. Les captures restent dans `public/screenshots/`.

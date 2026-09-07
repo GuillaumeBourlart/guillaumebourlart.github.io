@@ -1,29 +1,24 @@
-'use client'
-
-import { useEffect, useState } from 'react'
+import type { Metadata } from 'next'
+import Navigation from '@/components/Navigation'
 import Hero from '@/components/Hero'
 import AppsSection from '@/components/AppsSection'
-import Roadmap from '@/components/Roadmap'
+import Studio from '@/components/Studio'
 import Contact from '@/components/Contact'
+import Footer from '@/components/Footer'
+
+export const metadata: Metadata = { alternates: { canonical: '/' } }
 
 export default function Home() {
-  const [mounted, setMounted] = useState(false)
-
-  useEffect(() => {
-    setMounted(true)
-  }, [])
-
-  if (!mounted) {
-    return null
-  }
-
   return (
-    <main className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900">
-      <Hero />
-      <Roadmap />
-      <AppsSection />
-      <Contact />
-    </main>
+    <>
+      <Navigation />
+      <main id="main-content">
+        <Hero />
+        <AppsSection />
+        <Studio />
+        <Contact />
+      </main>
+      <Footer />
+    </>
   )
 }
-
