@@ -1,49 +1,60 @@
-# Dossier Public - Images et Assets
+# Portfolio de Guillaume Bourlart
 
-Ce dossier contient tous les fichiers statiques qui seront servis directement par Next.js.
+Code source du portfolio Next.js, de la page d'estimation et des pages Pawder.
 
-## Structure
+## Où est la version complète ?
 
-```
-public/
-├── icons/              # Icônes des applications (512x512 px recommandé)
-│   ├── pawder-icon.png
-│   └── reflexe-master-icon.png
-└── screenshots/        # Captures d'écran des apps (format iPhone)
-    ├── pawder-1.png
-    └── reflexe-master-1.png
-```
+- Dépôt : https://github.com/GuillaumeBourlart/guillaumebourlart.github.io
+- Branche `codex/source-complete` : projet source complet, images, documents et configuration pour reconstruire le site.
+- Branche `main` : fichiers statiques actuellement publiés par GitHub Pages depuis la racine.
 
-## Comment ajouter vos images
+Le code source était auparavant conservé sur le Mac, tandis que les fichiers du dossier `out/` étaient envoyés sur GitHub. La branche source conserve désormais les deux historiques Git : celui du projet local et celui du site publié.
 
-### 1. Icônes d'apps
-- Placez vos icônes dans `public/icons/`
-- Format recommandé : PNG, 512x512 px minimum
-- Nommez-les : `nom-de-lapp-icon.png`
+## Récupérer le projet sur un autre ordinateur
 
-### 2. Captures d'écran
-- Placez vos captures dans `public/screenshots/`
-- Format recommandé : PNG ou JPG
-- Taille recommandée : 1170x2532 px (iPhone 14 Pro) ou similaire
-- Nommez-les : `nom-de-lapp-1.png`, `nom-de-lapp-2.png`, etc.
+Installer Git et Node.js 22 (version de validation indiquée dans `.nvmrc`), puis :
 
-### 3. Mise à jour dans `data/apps.ts`
-
-Une fois les images ajoutées, mettez à jour les chemins dans `data/apps.ts` :
-
-```typescript
-{
-  id: '1',
-  name: 'Pawder',
-  iconUrl: '/icons/pawder-icon.png',
-  screenshots: ['/screenshots/pawder-1.png'],
-  // ...
-}
+```bash
+git clone --branch codex/source-complete https://github.com/GuillaumeBourlart/guillaumebourlart.github.io.git portfolio
+cd portfolio
+npm ci
+npm run dev
 ```
 
-**Note** : Les chemins commencent toujours par `/` et pointent vers le dossier `public/`.
+Le site de développement est accessible sur http://localhost:3000.
 
-## Exemple
+## Reconstruire le site publié
 
-Si vous placez `pawder-icon.png` dans `public/icons/`, le chemin sera `/icons/pawder-icon.png`.
+```bash
+npm run build
+```
 
+Le résultat se trouve dans `out/`. Pour le consulter, avec Python 3 installé :
+
+```bash
+python3 -m http.server 3000 --directory out
+```
+
+La compilation récupère la police Inter auprès de Google Fonts ; une connexion Internet est nécessaire. Aucun fichier `.env` ni secret applicatif n'est nécessaire pour cette version statique. `node_modules/`, `.next/` et `out/` sont recréés par les commandes ci-dessus et ne sont pas sauvegardés sur la branche source.
+
+## Fichiers à conserver
+
+- `app/`, `components/`, `data/` : pages, composants et contenu.
+- `public/` : images, captures, `app-ads.txt` et `CNAME`.
+- `package.json`, `package-lock.json` et les fichiers de configuration : compilation reproductible.
+- Les documents Markdown Pawder : textes source conservés avec le projet.
+- `.nojekyll` et `copy-nojekyll.js` : prise en charge des fichiers Next.js par GitHub Pages.
+
+`public/CNAME` contient `mobiversegames.com`. `public/app-ads.txt` et la capture supplémentaire ont été récupérés depuis la version publiée, puis réintégrés au projet source.
+
+## Publication
+
+GitHub Pages est actuellement configuré sur **Deploy from a branch → main → / (root)**. Un envoi sur `codex/source-complete` sauvegarde le projet sans modifier le site publié.
+
+Pour publier une nouvelle version avec cette configuration, compiler la branche source puis copier le contenu de `out/` dans un autre checkout de `main`, en conservant son dossier `.git`, avant de créer un commit et de le pousser. Ne pas remplacer `main` directement par les sources : cette branche sert actuellement des fichiers HTML statiques.
+
+Le workflow `.github/workflows/deploy.yml` est conservé pour une éventuelle migration vers GitHub Actions. Il ne s'exécute pas lors d'un push sur `codex/source-complete`. Cette migration demandera de configurer Pages sur **GitHub Actions** et de choisir la branche source à déployer.
+
+## Domaine personnalisé
+
+Voir [docs/DOMAINE.md](docs/DOMAINE.md) pour le diagnostic DNS et les valeurs nécessaires à GitHub Pages. Le domaine et les e-mails se configurent chez le fournisseur DNS ; supprimer la copie locale du projet ne change pas ces services.
