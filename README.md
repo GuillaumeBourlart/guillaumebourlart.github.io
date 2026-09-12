@@ -63,6 +63,7 @@ Voir [docs/DOMAINE.md](docs/DOMAINE.md) pour le diagnostic DNS et les valeurs n�
 - `/` : quatre applications du studio, deux réalisations clients (Archidex et Yams Love), leurs galeries de captures, les services et le contact.
 - `/a-propos/` : présentation de Guillaume Bourlart et de son parcours.
 - `/estimation/` : questionnaire de budget et de délai, conservé avec ses règles de calcul.
+- `/mentions-legales/` : identité de l’entrepreneur individuel, nom commercial, hébergeur et information sur les données personnelles.
 - `/pawder/` : assistance et documents légaux de l’application.
 
 Les applications et leurs liens App Store se modifient dans `data/apps.ts`. Le champ `projectType` distingue les applications du studio (`studio`) des développements réalisés pour des clients (`client`). La charte du site (ivoire, vert profond et citron) se trouve dans `app/globals.css`. Les captures restent dans `public/screenshots/`. Le composant `components/IPhoneMockup.tsx` les présente dans le cadre transparent `public/mockup_iphone.png`, aussi bien sur l’accueil que dans les galeries.
@@ -72,3 +73,5 @@ Les applications et leurs liens App Store se modifient dans `data/apps.ts`. Le c
 Le site publié fonctionne sur GitHub Pages, indépendamment de ce dossier. Après un push réussi sur `main` et un déploiement confirmé, la copie locale peut être supprimée si aucune modification ni fichier personnel non sauvegardé ne subsiste. Pour retravailler sur le site, utiliser les commandes de récupération ci-dessus.
 
 Git conserve les sources, les ressources et la configuration. Les dossiers `node_modules/`, `.next/` et `out/`, ainsi que `next-env.d.ts`, sont générés à nouveau par l’installation et la compilation. Les fichiers `.DS_Store` sont des métadonnées du Finder.
+
+Les avis administratifs PDF, les captures de travail dans `Claude outputs/` et les fichiers temporaires dans `_to_delete/` sont exclus du dépôt public. Toute pièce personnelle à conserver doit être sauvegardée séparément, hors du dossier du projet, avant de supprimer celui-ci.

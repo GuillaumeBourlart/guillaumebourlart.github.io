@@ -30,7 +30,7 @@ const contactLinks = [
   {
     icon: Mail,
     label: 'Email',
-    href: 'mailto:contact.gb.entreprise@gmail.com',
+    href: 'mailto:contact@mobiversegames.com',
     color: 'from-blue-500 to-cyan-500',
   },
   {

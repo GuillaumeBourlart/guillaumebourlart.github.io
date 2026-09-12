@@ -34,3 +34,7 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
+# Local administrative documents and working captures (keep a private backup)
+/Avis_de_situation_*.pdf
+/Claude outputs/
+/_to_delete/

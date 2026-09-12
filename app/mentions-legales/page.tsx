@@ -17,14 +17,14 @@ export default function MentionsLegales() {
         <div className="legal-page site-container">
           <p className="eyebrow">Informations / Mentions légales</p>
           <h1>Mentions légales<span>.</span></h1>
-          <p className="legal-updated">Dernière mise à jour : 11 septembre 2026</p>
+          <p className="legal-updated">Dernière mise à jour : 12 septembre 2026</p>
 
           <section aria-labelledby="editeur">
             <h2 id="editeur">1. Éditeur du site</h2>
             <p>Le site <strong>mobiversegames.com</strong> est édité par :</p>
             <dl className="legal-identity">
               <dt>Nom</dt>
-              <dd><strong>Guillaume BOURLART</strong> — Entrepreneur individuel (EI)</dd>
+              <dd><strong>Guillaume Paul Raoul Bourlart</strong> — Entrepreneur individuel (EI)</dd>
               <dt>Nom commercial</dt>
               <dd>Mobiverse Games</dd>
               <dt>SIREN</dt>
@@ -35,7 +35,7 @@ export default function MentionsLegales() {
               <dd>Registre national des entreprises (RNE)</dd>
               <dt>Code APE / NAF</dt>
               <dd>58.29C — Édition de logiciels applicatifs</dd>
-              <dt>Siège social</dt>
+              <dt>Adresse professionnelle</dt>
               <dd>1 avenue Maurice, 92270 Bois-Colombes, France</dd>
               <dt>Téléphone</dt>
               <dd><a href="tel:+33667661113">+33 6 67 66 11 13</a></dd>
@@ -44,8 +44,9 @@ export default function MentionsLegales() {
               <dt>TVA</dt>
               <dd>TVA non applicable — article 293 B du Code général des impôts</dd>
               <dt>Directeur de la publication</dt>
-              <dd>Guillaume Bourlart</dd>
+              <dd>Guillaume Paul Raoul Bourlart</dd>
             </dl>
+            <p>Mobiverse Games est le nom commercial sous lequel Guillaume Paul Raoul Bourlart exerce son activité d’entrepreneur individuel.</p>
           </section>
 
           <section aria-labelledby="hebergeur">
@@ -54,35 +55,41 @@ export default function MentionsLegales() {
             <p>
               <strong>GitHub, Inc.</strong> (GitHub Pages)<br />
               88 Colin P. Kelly Jr. Street, San Francisco, CA 94107, États-Unis<br />
+              Téléphone : <a href="tel:+18774484820">+1 877 448 4820</a><br />
               <a href="https://support.github.com/" target="_blank" rel="noopener noreferrer">support.github.com</a>
             </p>
-            <p>Le nom de domaine est enregistré auprès de IONOS SARL, 7 place de la Gare, 57200 Sarreguemines, France.</p>
+            <p>Le nom de domaine est enregistré auprès de IONOS.</p>
           </section>
 
           <section aria-labelledby="pi">
             <h2 id="pi">3. Propriété intellectuelle</h2>
-            <p>L’ensemble des éléments composant ce site — textes, visuels, captures d’écran, icônes, logos, charte graphique, code source — est protégé par le droit de la propriété intellectuelle et demeure la propriété exclusive de Guillaume Bourlart, sauf mention contraire.</p>
-            <p>Toute reproduction, représentation, adaptation ou exploitation, totale ou partielle, sans autorisation écrite préalable, est interdite et susceptible de constituer une contrefaçon au sens des articles L.335-2 et suivants du Code de la propriété intellectuelle.</p>
-            <p>Les marques, logos et captures d’écran des applications présentées au titre de réalisations pour des clients restent la propriété de leurs titulaires respectifs et sont reproduits avec leur accord.</p>
+            <p>Les textes, visuels, logos, captures d’écran et autres éléments du site sont protégés par les droits de leurs titulaires respectifs. Leur réutilisation doit respecter les autorisations, licences et exceptions légales applicables.</p>
+            <p>Archidex et Yams Love sont présentées comme des réalisations de développement pour des clients. Cette présentation ne signifie pas que leurs marques ou leurs applications appartiennent à Mobiverse Games. Les droits correspondants restent ceux de leurs titulaires respectifs.</p>
           </section>
 
           <section aria-labelledby="donnees">
             <h2 id="donnees">4. Données personnelles et cookies</h2>
-            <p>Ce site est un site vitrine statique. Il ne dépose aucun cookie, n’utilise aucun outil de mesure d’audience et ne collecte aucune donnée personnelle à votre insu.</p>
-            <p>Si vous choisissez d’écrire à l’adresse de contact, les informations transmises (nom, adresse e-mail, contenu du message) sont utilisées uniquement pour répondre à votre demande et conservées le temps nécessaire au traitement de celle-ci, puis au maximum trois ans à compter du dernier échange.</p>
-            <p>Conformément au Règlement (UE) 2016/679 (RGPD) et à la loi « Informatique et Libertés », vous disposez d’un droit d’accès, de rectification, d’effacement, de limitation et d’opposition sur vos données. Pour l’exercer, écrivez à <a href="mailto:contact@mobiversegames.com">contact@mobiversegames.com</a>. Vous pouvez également introduire une réclamation auprès de la <a href="https://www.cnil.fr/" target="_blank" rel="noopener noreferrer">CNIL</a>.</p>
+            <p>Le responsable des traitements liés aux demandes adressées à Mobiverse Games est Guillaume Paul Raoul Bourlart, entrepreneur individuel, joignable aux coordonnées indiquées ci-dessus.</p>
+            <h3>Navigation et estimation</h3>
+            <p>Le code de ce site vitrine n’intègre ni outil de mesure d’audience ni traceur publicitaire et ne dépose pas de cookie. Le questionnaire d’estimation fonctionne dans votre navigateur : vos réponses ne sont pas envoyées automatiquement à Mobiverse Games. Un lien de contact ouvre votre logiciel de messagerie ; vous choisissez les informations à envoyer.</p>
+            <p>L’hébergeur GitHub Pages enregistre l’adresse IP des visiteurs à des fins de sécurité. GitHub décrit les données techniques traitées, leur conservation et les garanties applicables aux transferts internationaux, notamment vers les États-Unis, dans sa <a href="https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement" target="_blank" rel="noopener noreferrer">politique de confidentialité</a>.</p>
+            <h3>Demandes par e-mail</h3>
+            <p>Les informations que vous transmettez volontairement (identité, coordonnées, contenu du message et pièces jointes éventuelles) servent à répondre à votre demande et à préparer ou suivre une prestation. Le traitement repose sur les mesures précontractuelles ou l’exécution du contrat pour une demande de devis ou une prestation, et sur l’intérêt légitime à répondre aux sollicitations pour les autres échanges. Seules les informations nécessaires à votre demande sont utiles ; sans moyen de vous recontacter, il peut être impossible d’y répondre.</p>
+            <p>Ces informations sont destinées à l’entrepreneur et aux prestataires techniques nécessaires à l’acheminement et à l’hébergement des échanges. Elles sont conservées pendant le traitement et le suivi de votre demande. Les éléments nécessaires à un contrat, à la comptabilité ou à la défense de droits sont ensuite conservés pour les durées correspondant aux obligations légales et aux délais de prescription applicables.</p>
+            <h3>Vos droits</h3>
+            <p>Selon les conditions prévues par le RGPD, vous pouvez demander l’accès, la rectification, l’effacement, la limitation ou la portabilité de vos données, et vous opposer aux traitements fondés sur l’intérêt légitime. Pour exercer vos droits, écrivez à <a href="mailto:contact@mobiversegames.com">contact@mobiversegames.com</a> ou à l’adresse professionnelle ci-dessus. Vous pouvez également introduire une réclamation auprès de la <a href="https://www.cnil.fr/fr/adresser-une-plainte" target="_blank" rel="noopener noreferrer">CNIL</a>.</p>
             <p>Les applications publiées par le studio disposent de leurs propres politiques de confidentialité, accessibles depuis leur fiche sur les magasins d’applications.</p>
           </section>
 
           <section aria-labelledby="responsabilite">
             <h2 id="responsabilite">5. Responsabilité</h2>
             <p>Les informations publiées sur ce site sont fournies à titre indicatif et peuvent être modifiées à tout moment. L’éditeur s’efforce d’en assurer l’exactitude et la mise à jour, sans pouvoir garantir l’absence d’erreur ou d’interruption d’accès au site.</p>
-            <p>Les liens vers des sites tiers sont proposés pour votre commodité ; l’éditeur n’exerce aucun contrôle sur leur contenu et décline toute responsabilité à leur égard.</p>
+            <p>Les liens vers des sites tiers donnent accès à des services dont les contenus et les politiques de confidentialité sont définis par leurs propres éditeurs.</p>
           </section>
 
           <section aria-labelledby="droit">
             <h2 id="droit">6. Droit applicable</h2>
-            <p>Les présentes mentions légales sont soumises au droit français. En cas de litige, et à défaut de résolution amiable, les tribunaux français sont seuls compétents, sous réserve des règles impératives applicables aux consommateurs.</p>
+            <p>Le droit français s’applique, sous réserve des dispositions impératives applicables, notamment celles protégeant les consommateurs.</p>
           </section>
         </div>
       </main>

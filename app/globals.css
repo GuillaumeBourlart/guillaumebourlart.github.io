@@ -268,6 +268,8 @@ button, a { touch-action: manipulation; }
 .legal-updated { color: var(--muted); font-size: 13px; margin: 0 0 46px; }
 .legal-page section { border-top: 1px solid var(--line); padding-block: 32px; }
 .legal-page h2 { font-size: 20px; font-weight: 600; letter-spacing: -.02em; margin: 0 0 16px; }
+.legal-page h3 { font-size: 16px; font-weight: 600; margin: 26px 0 10px; }
+.legal-identity + p { margin-top: 22px; }
 .legal-page p { font-size: 15px; line-height: 1.85; color: var(--muted); margin: 0 0 14px; }
 .legal-page p:last-child { margin-bottom: 0; }
 .legal-page strong { color: var(--ink); font-weight: 600; }
