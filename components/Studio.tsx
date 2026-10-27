@@ -2,7 +2,7 @@ import Link from 'next/link'
 import { ArrowUpRight, Gamepad2, Smartphone, Monitor } from 'lucide-react'
 
 const services = [
-  { icon: Smartphone, title: 'Applications iOS', description: 'Des applications natives pour iPhone, pensées pour leur usage et développées avec Swift et SwiftUI.' },
+  { icon: Smartphone, title: 'Applications iOS et Android', description: 'Des applications pour iPhone et Android, pensées pour leur usage et développées avec Swift, SwiftUI ou Flutter.' },
   { icon: Gamepad2, title: 'Jeux mobiles', description: 'Réflexes, jeux de société, expériences à partager : des idées qui prennent vie, un écran à la fois.' },
   { icon: Monitor, title: 'Projets sur mesure', description: 'Une application ou un site web à créer ? Le studio accompagne aussi vos projets, de l’idée au développement.' },
 ]

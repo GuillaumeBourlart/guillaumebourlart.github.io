@@ -1,10 +1,10 @@
 'use client'
 
 import { useState } from 'react'
-import IPhoneMockup from './IPhoneMockup'
+import ScreenshotFrame from './ScreenshotFrame'
 import { ArrowLeft, ArrowRight } from 'lucide-react'
 
-export default function AppGallery({ screenshots, name }: { screenshots: string[]; name: string }) {
+export default function AppGallery({ screenshots, name, landscape = false }: { screenshots: string[]; name: string; landscape?: boolean }) {
   const [current, setCurrent] = useState(0)
   const move = (step: number) => setCurrent(index => (index + step + screenshots.length) % screenshots.length)
   return (
@@ -14,7 +14,7 @@ export default function AppGallery({ screenshots, name }: { screenshots: string[
         move(event.key === 'ArrowLeft' ? -1 : 1)
       }
     }}>
-      <div className="app-screen"><IPhoneMockup src={screenshots[current]} sizes="(max-width: 560px) 210px, 200px" alt={`${name} — capture ${current + 1} sur ${screenshots.length}`} /></div>
+      <div className={landscape ? 'app-screen app-screen-landscape' : 'app-screen'}><ScreenshotFrame landscape={landscape} src={screenshots[current]} sizes={landscape ? '(max-width: 560px) 90vw, 420px' : '(max-width: 560px) 210px, 200px'} alt={`${name} — capture ${current + 1} sur ${screenshots.length}`} /></div>
       {screenshots.length > 1 && <div className="gallery-controls">
         <button onClick={() => move(-1)} aria-label={`Capture précédente de ${name}`}><ArrowLeft size={18} aria-hidden="true" /></button>
         <span aria-live="polite" aria-atomic="true">{String(current + 1).padStart(2, '0')} <span aria-hidden="true">/</span><span className="sr-only">sur</span> {String(screenshots.length).padStart(2, '0')}</span>
