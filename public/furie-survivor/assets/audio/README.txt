@@ -1,0 +1,1 @@
+Optional generated sound files go here. Configure audio-bank.js. See docs/BRUITAGES_ELEVENLABS_V5.md for prompts, naming and instructions. No generated audio files are shipped yet; original procedural sounds are the current fallback.

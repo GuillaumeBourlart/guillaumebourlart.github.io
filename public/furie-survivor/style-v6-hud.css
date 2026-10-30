@@ -1,0 +1,254 @@
+/* V6 live HUD. Frames use the generated enamel/gold assets; combat text stays DOM. */
+:root{
+  --hud-ink:#081d2a;
+  --hud-cream:#fff2cf;
+  --hud-muted:#b8c9ce;
+  --hud-gold:#d6b46e;
+  --hud-panel:url('./assets/ui-v6/panel.png');
+  --hud-ring:url('./assets/ui-v6/ring.png');
+}
+.hud{inset:28px 28px auto;align-items:flex-start;gap:20px}
+.hud .vitals{
+  width:clamp(300px,29vw,430px);min-height:116px;gap:13px;align-items:center;
+  padding:0 10px 4px 0;border:12px solid transparent;border-radius:0;
+  border-image:var(--hud-panel) 96 fill / 14px / 0 stretch;
+  background:none;box-shadow:0 8px 22px #04192130;color:var(--hud-cream);
+}
+.hud .hud-avatar{
+  width:88px;height:88px;flex-shrink:0;padding:9px;position:relative;
+  border:0;border-radius:50%;background:var(--hud-ring) center/100% 100% no-repeat;
+  box-shadow:none;
+}
+.hud .hud-avatar:before{content:none}
+#hud-portrait{background:#14313b!important;box-shadow:none}
+#hud-portrait .hero-portrait{width:103px;height:119px;left:-15px;top:-14px}
+.hud #level-label{
+  bottom:-8px;min-width:54px;padding:5px 9px;border:1px solid var(--hud-gold);
+  border-radius:999px;background:var(--hud-ink);color:var(--hud-cream);
+  font:700 11px/1.15 Outfit,system-ui,sans-serif;box-shadow:0 2px 6px #020e1d4d;
+}
+.hud .vitals-body{min-width:0;align-self:center;flex:1}
+.hud .hud-hero{gap:9px;margin:0 0 9px;align-items:baseline}
+.hud #hud-hero-name{font-size:19px;line-height:1.1;font-weight:800;letter-spacing:.035em;text-transform:uppercase;color:var(--hud-cream)}
+.hud #health-value{font-size:14px;line-height:1.1;font-weight:750;letter-spacing:.015em;color:var(--hud-cream);white-space:nowrap}
+.hud #health-track,.hud #xp-track{
+  display:block;flex:none;min-height:0;overflow:hidden;border:1px solid #b8c9bb70;
+  border-radius:999px;background:#0a1724;box-shadow:inset 0 2px 3px #0006;
+}
+.hud #health-track{height:11px}
+.hud #xp-track{height:7px;margin-top:7px;border-color:#a5b4ce55}
+.hud #health-fill{background:#80eaa0;box-shadow:inset 0 2px 0 #c8ffd87d}
+.hud #xp-fill{background:#77b9f3;box-shadow:inset 0 1px 0 #d1e7ff6e}
+.hud .low-health #health-fill{background:#ef6e73;box-shadow:inset 0 2px 0 #ffc8ae7d}
+.hud .run-loot{gap:14px;margin-top:9px;color:var(--hud-cream);font-size:13px;font-weight:650;line-height:1.2}
+.hud .run-loot span{gap:5px}
+.hud .run-loot .glyph{width:19px;height:19px;color:#efc568}
+.hud .run-loot #run-shards .glyph{color:#8ed6ff}
+.hud .run-loot #kills{color:#d0dadb}
+.hud .run-clock{
+  top:0;left:50%;right:auto;transform:translateX(-50%);width:160px;min-width:160px;min-height:88px;
+  padding:2px 7px 5px;border:11px solid transparent;border-radius:0;
+  border-image:var(--hud-panel) 96 fill / 14px / 0 stretch;background:none;
+  color:var(--hud-cream);box-shadow:0 5px 18px #0415212b;
+}
+.hud .run-clock>span{font-size:8px;line-height:1.15;letter-spacing:.14em;color:#ddcfaa}
+.hud .run-clock strong{font-family:Outfit,system-ui,sans-serif;font-size:32px;line-height:1.08;font-weight:800;letter-spacing:.005em;margin:3px 0 4px}
+.hud .run-clock small{font-size:10px;line-height:1.3;font-weight:650;color:#eee5cc}
+.hud .run-clock.rift-available,.hud .run-clock.rift-active{background:none;filter:drop-shadow(0 0 7px #d9c18e30)}
+.hud .run-clock.rift-available small{color:#d6bbff}
+.hud .run-clock.rift-active small{color:#ffad9a}
+.hud .hud-right{position:relative;top:auto;right:auto;display:flex;flex-direction:row-reverse;align-items:flex-start;gap:17px}
+.hud .hud-buttons{display:flex;flex-direction:column;gap:10px}
+.hud .hud-buttons .icon-button{
+  width:48px;height:48px;min-width:48px;min-height:48px;padding:13px;
+  border:0;border-radius:50%;background:var(--hud-ring) center/100% 100% no-repeat #0b2633;
+  color:var(--hud-cream);box-shadow:0 3px 10px #04162045;
+}
+.hud .hud-buttons .icon-button>.glyph{width:22px;height:22px}
+.hud .minimap-button{
+  position:relative;top:0;right:auto;width:clamp(110px,10vw,150px);padding:11px;border:0;border-radius:50%;
+  background:var(--hud-ring) center/100% 100% no-repeat;box-shadow:0 4px 14px #051b2733;
+}
+.hud .minimap-button canvas{filter:saturate(.9);box-shadow:none}
+.hud .minimap-button:before{content:'N';top:-5px;padding:0 3px;background:#0d2837;border-radius:3px;color:var(--hud-cream);font-size:13px;line-height:1.2}
+.hud .minimap-button #biome-label{bottom:-14px;min-width:94%;padding:4px 8px;background:#0c2437ed;border:1px solid #b7995b80;border-radius:999px;font-size:8px;line-height:1.2;letter-spacing:.055em;color:var(--hud-cream)}
+.boss-hud{top:134px;left:50%;transform:translateX(-50%);width:340px;gap:0}
+.boss-hud .boss-crest{display:none}
+.boss-hud .boss-banner{
+  min-width:0;padding:2px 7px 4px;border:10px solid transparent;border-radius:0;
+  border-image:var(--hud-panel) 96 fill / 13px / 0 stretch;background:none;color:var(--hud-cream);
+}
+.boss-hud .boss-banner>span{font-size:10px;line-height:1.3;letter-spacing:.09em;color:#ffe3b4}
+.boss-hud .boss-track{height:8px;margin-top:7px;border:1px solid #d9a17d80;background:#2b1725;box-shadow:inset 0 2px 2px #0005}
+.boss-hud .boss-track i{background:#e66d7b;box-shadow:inset 0 1px 0 #ffc5ad9c}
+.boss-hud .boss-banner>small{font-size:8px;line-height:1.3;margin-top:5px;letter-spacing:.06em;color:#dbbca3}
+.discovery-hint{
+  top:165px;left:28px;width:350px;padding:0 6px 5px;border:10px solid transparent;border-radius:0;
+  border-image:var(--hud-panel) 96 fill / 12px / 0 stretch;background:none;backdrop-filter:none;
+  box-shadow:0 5px 16px #04152126;color:var(--hud-cream);
+}
+.discovery-hint.boss-present{top:165px}
+.discovery-hint .objective-top{min-height:38px;gap:8px;margin:0}
+.discovery-hint .objective-top>.glyph{width:22px;height:22px;flex-shrink:0;color:var(--hud-gold)}
+.discovery-hint .objective-name{font-size:13px;line-height:1.2;font-weight:750;letter-spacing:0;color:var(--hud-cream)}
+.discovery-hint .objective-distance{font-size:12px;line-height:1.2;gap:4px;color:#c5cdcb}
+.discovery-hint .objective-arrow{font-size:12px}
+.discovery-hint .objective-help{
+  width:44px;height:44px;min-width:44px;min-height:44px;margin:-3px -6px -3px 0;
+  border:0;background:var(--hud-ring) center/28px 28px no-repeat;color:var(--hud-cream);font-size:13px;
+}
+.discovery-hint .objective-help:before{content:none}
+.discovery-hint .objective-action{margin-top:2px;gap:8px;font-size:13px;line-height:1.35;color:#f5ebd0}
+.discovery-hint .objective-action>b{font-size:12px;color:#e6c681}
+.discovery-hint .objective-detail{display:none}
+.discovery-hint .objective-footer{display:flex;gap:8px;margin-top:7px;font-size:11px;line-height:1.35;color:#cfdfc4}
+.discovery-hint .objective-risk{display:none}
+.discovery-hint .objective-meter{height:5px;margin-top:8px;background:#061b26;border:1px solid #d2c49a45}
+.discovery-hint .objective-meter i{background:#9adeb0;box-shadow:inset 0 1px 0 #e5ffe47a}
+.discovery-hint.far{padding-bottom:0}
+.discovery-hint.far .objective-action,.discovery-hint.far .objective-detail,.discovery-hint.far .objective-footer,.discovery-hint.far .objective-meter{display:none!important}
+.discovery-hint.completed .objective-action{color:#abe6b4}
+.discovery-hint.interrupted .objective-action{color:#f0cc8c}
+.play-controls .terrain-status{
+  bottom:129px;max-width:calc(100% - 280px);padding:10px 20px;border:1px solid #e6c27c;
+  border-radius:999px;background:#163d43f2;box-shadow:0 3px 12px #05162147,inset 0 1px 0 #d8c49126;
+  color:var(--hud-cream);font-size:13px;line-height:1.25;font-weight:700;text-align:center;
+}
+.play-controls .terrain-status[data-terrain=ice]{background:#154255f2;color:#d4f2ff;border-color:#95c8d9}
+.play-controls .terrain-status[data-terrain=mud]{background:#4a402bf2;color:#ffebbf;border-color:#cdb077}
+.play-controls .terrain-status[data-terrain=danger]{background:#762d35f2;color:#fff0d8;border-color:#edbc7e;box-shadow:0 3px 12px #27162059,inset 0 1px 0 #ffe3b026}
+.play-controls .build-strip{
+  bottom:41px;display:flex;align-items:center;justify-content:flex-start;gap:10px;max-width:min(620px,50%);max-height:68px;
+  padding:5px 3px;flex-wrap:nowrap;overflow-x:auto;overflow-y:hidden;scrollbar-width:thin;
+  pointer-events:auto;touch-action:pan-x;
+}
+#build-strip .build-chip{
+  flex:0 0 52px;display:flex;flex-direction:column;justify-content:center;gap:0;width:52px;height:52px;padding:7px;
+  border:0;border-radius:50%;background:var(--hud-ring) center/100% 100% no-repeat #0c2635;
+  font-size:10px;line-height:1;font-weight:750;color:var(--hud-cream);box-shadow:none;
+}
+#build-strip .build-chip .glyph{width:25px;height:25px;flex-shrink:0;color:#a6b3ff}
+#build-strip .build-chip.main .glyph{width:30px;height:30px;color:var(--hero-color)}
+#build-strip .build-chip.main>span,#build-strip .build-chip.relic>span{display:none}
+#build-strip .build-chip.relic .glyph{color:#eaca7e}
+.play-controls .keyboard-hint{bottom:13px;left:28px;font-size:9px;line-height:1.2;color:#e0e8d9aa;letter-spacing:.025em}
+.play-controls .joystick{
+  display:block;left:34px;bottom:50px;width:140px;height:140px;padding:0;border:0;border-radius:50%;
+  background:var(--hud-ring) center/100% 100% no-repeat #173e4140;box-shadow:none;opacity:.55;
+}
+.play-controls .joystick:before{content:none}
+.play-controls .joystick.active{opacity:.9}
+.play-controls .joystick-knob{
+  width:53px;height:53px;border:1px solid #e3e2bfaa;background:#9fc9bc70;
+  box-shadow:inset 0 2px 0 #e7ffef4d,0 3px 10px #09212626;
+}
+.play-controls .joystick small{bottom:-18px;font-size:8px;line-height:1.2;color:var(--hud-cream);letter-spacing:.1em}
+.play-controls .dash-control{right:42px;bottom:43px;gap:15px}
+.play-controls .dash-button{
+  width:100px;height:100px;min-width:44px;min-height:44px;padding:19px;border:0;border-radius:50%;
+  background:#10505a;color:var(--hud-cream);box-shadow:inset 0 4px 12px #7de0cf35,0 7px 16px #071d285e;
+}
+.play-controls .dash-button:before{
+  content:'';position:absolute;inset:-8px;border:0;border-radius:0;background:var(--hud-ring) center/100% 100% no-repeat;
+  box-shadow:none;z-index:0;pointer-events:none;
+}
+.play-controls .dash-button #dash-symbol,.play-controls .dash-button #dash-count{position:relative;z-index:1}
+.play-controls .dash-button .glyph{width:48px;height:48px;transform:none;color:#fff0b7}
+.play-controls .dash-button b{font-family:Outfit,system-ui,sans-serif;font-size:29px;font-weight:750;color:#f7dfac}
+.play-controls .dash-button:disabled{opacity:.7;background:#152c38;box-shadow:inset 0 2px 8px #0004}
+.play-controls .dash-control>small{font-size:11px;line-height:1.15;font-weight:750;letter-spacing:.08em;color:var(--hud-cream);text-shadow:0 1px 4px #142123}
+@media(max-width:1050px) and (min-height:521px){
+  .hud{inset:20px 20px auto}
+  .hud .vitals{width:300px;min-height:104px;gap:10px;padding-right:5px}
+  .hud .hud-avatar{width:70px;height:70px;padding:8px}
+  #hud-portrait .hero-portrait{width:82px;height:95px;left:-12px;top:-11px}
+  .hud #hud-hero-name{font-size:16px}.hud #health-value{font-size:11px}.hud .run-loot{font-size:11px;gap:9px}
+  .hud .run-clock{width:142px;min-width:142px;min-height:82px}.hud .run-clock strong{font-size:29px}
+  .discovery-hint,.discovery-hint.boss-present{top:139px;left:20px;width:300px}
+  .discovery-hint .objective-name{font-size:12px}.discovery-hint .objective-distance{font-size:10px}
+  .hud .hud-right{gap:10px}.hud .minimap-button{width:108px;padding:9px}
+  .play-controls .joystick{width:120px;height:120px}.play-controls .dash-button{width:88px;height:88px}
+  .play-controls .dash-button .glyph{width:39px;height:39px}
+}
+@media(max-width:600px) and (orientation:portrait){
+  .hud{inset:max(12px,env(safe-area-inset-top)) 10px auto;gap:0}
+  .hud .vitals{width:calc(100% - 146px);min-width:182px;min-height:85px;gap:6px;padding:1px 1px 3px 0;border-width:8px;border-image-width:10px}
+  .hud .hud-avatar{width:52px;height:52px;padding:6px}
+  #hud-portrait .hero-portrait{width:61px;height:71px;left:-9px;top:-9px}
+  .hud #level-label{min-width:39px;padding:3px 5px;bottom:-7px;font-size:8px}
+  .hud .hud-hero{gap:4px;margin:0 0 6px;flex-wrap:wrap;row-gap:2px}
+  .hud #hud-hero-name{font-size:12px;letter-spacing:.02em}.hud #health-value{font-size:9px}
+  .hud #health-track{height:8px}.hud #xp-track{height:5px;margin-top:5px}
+  .hud .run-loot{gap:6px;margin-top:6px;font-size:9px}.hud .run-loot span{gap:2px}.hud .run-loot .glyph{width:13px;height:13px}
+  .hud .run-clock{left:auto;right:48px;top:0;transform:none;width:93px;min-width:93px;min-height:77px;padding:2px 0 4px;border-width:8px;border-image-width:10px}
+  .hud .run-clock>span{font-size:6px;letter-spacing:.06em}.hud .run-clock strong{font-size:24px;margin:3px 0}.hud .run-clock small{font-size:7px;letter-spacing:0}
+  .hud .hud-right{position:absolute;right:0;top:0;display:flex;flex-direction:column;gap:8px}
+  .hud .hud-buttons{gap:6px}.hud .hud-buttons .icon-button{width:44px;height:44px;min-width:44px;min-height:44px;padding:12px}
+  .hud .hud-buttons .icon-button>.glyph{width:20px;height:20px}
+  .hud .minimap-button{position:absolute;right:0;top:108px;width:86px;padding:8px}
+  .hud .minimap-button:before{font-size:9px;top:-1px}.hud .minimap-button #biome-label{font-size:6px;bottom:-7px;padding:4px 6px}
+  .discovery-hint{left:10px;top:108px;width:calc(100% - 118px);padding:0 3px 4px;border-width:8px;border-image-width:10px}
+  .discovery-hint .objective-top{gap:4px;min-height:36px}.discovery-hint .objective-top>.glyph{width:18px;height:18px}
+  .discovery-hint .objective-name{font-size:10px}.discovery-hint .objective-distance{font-size:9px;gap:2px}.discovery-hint .objective-arrow{font-size:10px}
+  .discovery-hint .objective-help{margin:-4px -6px -4px 0;background-size:24px 24px;font-size:12px}
+  .discovery-hint .objective-action{font-size:11px;line-height:1.35;margin-top:2px}.discovery-hint .objective-action>b{font-size:10px}
+  .discovery-hint .objective-footer{font-size:9px;line-height:1.35;margin-top:6px}.discovery-hint .objective-meter{height:4px;margin-top:6px}
+  .boss-hud{left:10px;top:108px;transform:none;width:calc(100% - 118px)}
+  .boss-hud .boss-banner{padding:1px 4px 3px;border-width:8px;border-image-width:10px}
+  .boss-hud .boss-banner>span{font-size:8px;letter-spacing:.025em}.boss-hud .boss-banner>small{font-size:7px;margin-top:4px;letter-spacing:.02em}
+  .boss-hud .boss-track{height:6px;margin-top:5px}.discovery-hint.boss-present{top:175px;left:10px;width:calc(100% - 118px)}
+  .play-controls .terrain-status{bottom:174px;max-width:calc(100% - 32px);padding:9px 15px;font-size:11px;white-space:normal}
+  .play-controls .build-strip{display:flex;bottom:28px;max-width:calc(100% - 220px);height:52px;max-height:52px;padding:4px 1px;gap:6px}
+  #build-strip .build-chip{flex-basis:44px;width:44px;height:44px;padding:6px;font-size:8px}
+  #build-strip .build-chip .glyph{width:21px;height:21px}#build-strip .build-chip.main .glyph{width:27px;height:27px}
+  .play-controls .joystick{left:18px;bottom:53px;width:106px;height:106px}.play-controls .joystick-knob{width:43px;height:43px}
+  .play-controls .joystick small{font-size:7px;bottom:-17px}.play-controls .keyboard-hint{display:none}
+  .play-controls .dash-control{right:27px;bottom:57px;gap:11px}.play-controls .dash-button{width:73px;height:73px;padding:15px}
+  .play-controls .dash-button:before{inset:-6px}.play-controls .dash-button .glyph{width:35px;height:35px}.play-controls .dash-button b{font-size:23px}
+  .play-controls .dash-control>small{font-size:8px;letter-spacing:.06em}
+}
+@media(max-width:359px) and (orientation:portrait){
+  .hud .vitals{min-width:164px;width:calc(100% - 136px);gap:4px}.hud .hud-avatar{width:44px;height:44px;padding:5px}
+  #hud-portrait .hero-portrait{width:53px;height:61px;left:-9px;top:-8px}.hud #hud-hero-name{font-size:11px}.hud #health-value{font-size:8px}
+  .hud .run-clock{width:83px;min-width:83px}.hud .run-clock strong{font-size:22px}.hud .run-clock small{font-size:6px}
+  .hud .run-loot{gap:4px;font-size:8px}.hud .run-loot .glyph{width:11px;height:11px}
+  .discovery-hint .objective-top>.glyph{display:none}.discovery-hint .objective-name{font-size:9px}
+  .play-controls .build-strip{max-width:calc(100% - 204px)}
+}
+@media(max-height:520px) and (orientation:landscape){
+  .hud{inset:max(8px,env(safe-area-inset-top)) 12px auto;gap:12px}
+  .hud .vitals{width:220px;min-height:76px;gap:7px;padding:0 2px 2px 0;border-width:8px;border-image-width:10px}
+  .hud .hud-avatar{width:53px;height:53px;padding:6px}#hud-portrait .hero-portrait{width:63px;height:73px;left:-10px;top:-9px}
+  .hud #level-label{min-width:40px;padding:3px 6px;font-size:8px;bottom:-6px}
+  .hud .hud-hero{gap:5px;margin:0 0 5px}.hud #hud-hero-name{font-size:13px}.hud #health-value{font-size:9px}
+  .hud #health-track{height:7px}.hud #xp-track{height:4px;margin-top:5px}.hud .run-loot{gap:8px;font-size:9px;margin-top:5px}.hud .run-loot .glyph{width:13px;height:13px}
+  .hud .run-clock{top:0;width:124px;min-width:124px;min-height:66px;padding:0 3px 3px;border-width:8px;border-image-width:10px}
+  .hud .run-clock>span{font-size:6px}.hud .run-clock strong{font-size:25px;margin:1px 0 2px}.hud .run-clock small{font-size:8px}
+  .hud .hud-right{position:relative;top:auto;right:auto;display:flex;flex-direction:row-reverse;gap:10px;align-items:flex-start}
+  .hud .hud-buttons{gap:5px}.hud .hud-buttons .icon-button{width:44px;height:44px;min-width:44px;min-height:44px;padding:12px}
+  .hud .hud-buttons .icon-button>.glyph{width:20px;height:20px}
+  .hud .minimap-button{position:relative;top:0;right:auto;width:76px;padding:7px}.hud .minimap-button:before{font-size:8px;top:-1px}
+  .hud .minimap-button #biome-label{font-size:6px;bottom:-6px;padding:3px 5px}
+  .discovery-hint,.discovery-hint.boss-present{left:12px;top:94px;width:226px;padding:0 4px 4px;border-width:8px;border-image-width:10px}
+  .discovery-hint .objective-top{min-height:34px;gap:4px}.discovery-hint .objective-top>.glyph{width:17px;height:17px}
+  .discovery-hint .objective-name{font-size:10px}.discovery-hint .objective-distance{font-size:9px}.discovery-hint .objective-arrow{font-size:10px}
+  .discovery-hint .objective-help{margin:-5px -5px -5px 0;background-size:24px 24px;font-size:12px}
+  .discovery-hint .objective-action{font-size:11px;line-height:1.3}.discovery-hint .objective-action>b{font-size:10px}
+  .discovery-hint .objective-footer{font-size:9px;line-height:1.3;margin-top:5px}.discovery-hint .objective-meter{height:4px;margin-top:6px}
+  .boss-hud{top:83px;left:50%;width:250px;transform:translateX(-50%)}
+  .boss-hud .boss-banner{padding:0 4px 2px;border-width:8px;border-image-width:10px}.boss-hud .boss-banner>span{font-size:8px;letter-spacing:.03em}
+  .boss-hud .boss-track{height:6px;margin-top:5px}.boss-hud .boss-banner>small{font-size:7px;line-height:1.1;margin-top:4px}
+  .play-controls .terrain-status{bottom:69px;max-width:42%;padding:7px 13px;font-size:10px;line-height:1.25;white-space:normal}
+  .play-controls .build-strip{display:flex;bottom:10px;max-width:calc(100% - 330px);height:48px;max-height:48px;gap:6px;padding:2px}
+  #build-strip .build-chip{flex-basis:44px;width:44px;height:44px;padding:6px;font-size:8px}#build-strip .build-chip .glyph{width:21px;height:21px}
+  #build-strip .build-chip.main .glyph{width:27px;height:27px}.play-controls .keyboard-hint{display:none}
+  .play-controls .joystick{left:25px;bottom:27px;width:80px;height:80px}.play-controls .joystick-knob{width:34px;height:34px}.play-controls .joystick small{font-size:6px;bottom:-15px}
+  .play-controls .dash-control{right:32px;bottom:26px;gap:9px}.play-controls .dash-button{width:62px;height:62px;padding:13px}
+  .play-controls .dash-button:before{inset:-5px}.play-controls .dash-button .glyph{width:30px;height:30px}.play-controls .dash-button b{font-size:21px}.play-controls .dash-control>small{font-size:7px}
+}
+@media(prefers-reduced-motion:reduce){
+  .hud .health-track i,.hud .xp-track i,.boss-track i,.objective-meter i{transition:none}
+}
+body[data-reduced-motion=true] .hud .health-track i,body[data-reduced-motion=true] .hud .xp-track i,body[data-reduced-motion=true] .boss-track i,body[data-reduced-motion=true] .objective-meter i{transition:none}
+/* The build shelf remains swipeable without a desktop scrollbar over the world. */
+.build-strip{scrollbar-width:none}.build-strip::-webkit-scrollbar{display:none}
