@@ -33,35 +33,36 @@ function runMetrics(result={}) {
 
 export function calculateRunRewards(result={}) {
   const {seconds,kills,bosses,discoveries,chests} = runMetrics(result);
-  const survivalBonus=18*Math.pow(seconds/60,1.35),coinMultiplier=Math.max(1,Math.min(2,Number(result?.coinMultiplier??result?.stats?.coinMultiplier)||1));
+  const population=Math.max(1,Math.min(4,integer(result.rewardPlayers,1))),killShare=kills/(1+.55*(population-1));
+  const survivalBonus=1.2*Math.pow(seconds/60,1.22),coinMultiplier=Math.max(1,Math.min(2,Number(result?.coinMultiplier??result?.stats?.coinMultiplier)||1));
   return {
-    coins:Math.floor((kills*1.45 + seconds*.75 + survivalBonus + bosses*180 + discoveries*35 + chests*25)*coinMultiplier),
-    shards:Math.floor(seconds/30)*4 + bosses*20 + discoveries*2 + chests
+    coins:Math.floor((killShare*.08+seconds*.10+survivalBonus+bosses*20+discoveries*1.5+chests*3)*coinMultiplier),
+    shards:Math.floor(seconds/60)+bosses*3+Math.floor(discoveries/10)+Math.floor(chests/6)
   };
 }
 
 const ACHIEVEMENTS = Object.freeze([
-  {id:'first_expedition',title:'Premier retour',description:'Terminer une première expédition.',target:1,stat:'runs',reward:{coins:100,shards:50}},
-  {id:'hundred_monsters',title:'La horde recule',description:'Éliminer 100 monstres au total.',target:100,stat:'totalKills',reward:{coins:200,shards:50}},
-  {id:'three_minutes',title:'Toujours debout',description:'Survivre au moins 3 minutes dans une expédition.',target:180,stat:'bestTime',reward:{coins:200,shards:100}},
-  {id:'first_boss',title:'Tombeur de colosse',description:'Vaincre un premier boss.',target:1,stat:'totalBosses',reward:{coins:250,shards:100}},
-  {id:'ten_discoveries',title:'Le goût de l’inconnu',description:'Découvrir 10 lieux au total.',target:10,stat:'discoveries',reward:{coins:200,shards:100}},
-  {id:'eight_heroes',title:'Une belle compagnie',description:'Posséder 8 héros différents.',target:8,stat:'collection',reward:{coins:300,shards:150}},
-  {id:'six_minutes',title:'La route s’allonge',description:'Survivre 6 minutes dans une expédition.',target:360,stat:'bestTime',reward:{coins:500,shards:100}},
-  {id:'ten_minutes',title:'Au-delà de l’horizon',description:'Survivre 10 minutes dans une expédition.',target:600,stat:'bestTime',reward:{coins:800,shards:150}},
-  {id:'fifteen_minutes',title:'Légende des terres',description:'Survivre 15 minutes dans une expédition.',target:900,stat:'bestTime',reward:{coins:1200,shards:200}},
-  {id:'ten_bosses',title:'Briseur de failles',description:'Vaincre 10 gardiens de faille au total.',target:10,stat:'totalBosses',reward:{coins:800,shards:150}},
-  {id:'fifty_discoveries',title:'Cartographe d’Azur',description:'Découvrir 50 lieux au total.',target:50,stat:'discoveries',reward:{coins:500,shards:100}},
-  {id:'sixteen_heroes',title:'Une grande compagnie',description:'Posséder 16 héros différents.',target:16,stat:'collection',reward:{coins:500,shards:150}},
-  {id:'complete_collection',title:'Tous autour du feu',description:`Réunir les ${HEROES.length} héros de la collection.`,target:HEROES.length,stat:'collection',reward:{coins:1000,shards:200}},
-  {id:'trained_hero',title:'Un héros confirmé',description:'Améliorer un héros jusqu’au niveau 10.',target:10,stat:'heroLevel',reward:{coins:350,shards:50}},
-  {id:'master_hero',title:'Maîtrise accomplie',description:`Améliorer un héros jusqu’au niveau ${MAX_HERO_LEVEL}.`,target:MAX_HERO_LEVEL,stat:'heroLevel',reward:{coins:1000,shards:100}}
+  {id:'first_expedition',title:'Premier retour',description:'Terminer une première expédition.',target:1,stat:'runs',reward:{coins:30,shards:5}},
+  {id:'hundred_monsters',title:'La horde recule',description:'Éliminer 100 monstres au total.',target:100,stat:'totalKills',reward:{coins:40,shards:5}},
+  {id:'three_minutes',title:'Toujours debout',description:'Survivre au moins 3 minutes dans une expédition.',target:180,stat:'bestTime',reward:{coins:45,shards:8}},
+  {id:'first_boss',title:'Tombeur de colosse',description:'Vaincre un premier boss.',target:1,stat:'totalBosses',reward:{coins:70,shards:10}},
+  {id:'ten_discoveries',title:'Le goût de l’inconnu',description:'Découvrir 10 lieux au total.',target:10,stat:'discoveries',reward:{coins:40,shards:5}},
+  {id:'eight_heroes',title:'Une belle compagnie',description:'Posséder 8 héros différents.',target:8,stat:'collection',reward:{coins:100,shards:15}},
+  {id:'six_minutes',title:'La route s’allonge',description:'Survivre 6 minutes dans une expédition.',target:360,stat:'bestTime',reward:{coins:70,shards:10}},
+  {id:'ten_minutes',title:'Au-delà de l’horizon',description:'Survivre 10 minutes dans une expédition.',target:600,stat:'bestTime',reward:{coins:100,shards:15}},
+  {id:'fifteen_minutes',title:'Légende des terres',description:'Survivre 15 minutes dans une expédition.',target:900,stat:'bestTime',reward:{coins:150,shards:20}},
+  {id:'ten_bosses',title:'Briseur de failles',description:'Vaincre 10 gardiens de faille au total.',target:10,stat:'totalBosses',reward:{coins:100,shards:15}},
+  {id:'fifty_discoveries',title:'Cartographe d’Azur',description:'Découvrir 50 lieux au total.',target:50,stat:'discoveries',reward:{coins:80,shards:10}},
+  {id:'sixteen_heroes',title:'Une grande compagnie',description:'Posséder 16 héros différents.',target:16,stat:'collection',reward:{coins:120,shards:15}},
+  {id:'complete_collection',title:'Tous autour du feu',description:`Réunir les ${HEROES.length} héros de la collection.`,target:HEROES.length,stat:'collection',reward:{coins:200,shards:30}},
+  {id:'trained_hero',title:'Un héros confirmé',description:'Améliorer un héros jusqu’au niveau 10.',target:10,stat:'heroLevel',reward:{coins:70,shards:5}},
+  {id:'master_hero',title:'Maîtrise accomplie',description:`Améliorer un héros jusqu’au niveau ${MAX_HERO_LEVEL}.`,target:MAX_HERO_LEVEL,stat:'heroLevel',reward:{coins:200,shards:20}}
 ]);
 const ACHIEVEMENT_IDS = new Set(ACHIEVEMENTS.map(entry=>entry.id));
 
 function freshState() {
   return {
-    version:SAVE_VERSION,coins:500,shards:300,essence:0,selectedHero:'lyra',
+    version:SAVE_VERSION,coins:0,shards:0,essence:0,selectedHero:'lyra',
     owned:Object.fromEntries(STARTER_IDS.map(id=>[id,{level:1,copies:1,statPoints:emptyStatPoints()}])),
     pity:0,summonCount:0,
     stats:{runs:0,totalKills:0,totalBosses:0,bestTime:0,bestWave:0,discoveries:0,coinsEarned:0},
@@ -178,7 +179,7 @@ export function createProgression({storage=undefined,rng=Math.random}={}) {
     const level=heroLevel(id);
     if(level===0 || level>=MAX_HERO_LEVEL || statKey&&(!STAT_KEYS.includes(statKey)||heroStatPoints(id)[statKey]>=MAX_STAT_POINTS)) return 0;
     const extra=level-1;
-    return 70+24*extra+4*extra*extra;
+    return 350+90*extra+12*extra*extra;
   }
   function recruitCost(id) { return validHero(id)?RARITIES[HERO_BY_ID[id].rarity].recruitCost:0; }
 

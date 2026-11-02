@@ -29,9 +29,19 @@ export function paintedTexture(kind,base){
         ctx.beginPath();ctx.moveTo(x,y-k);ctx.lineTo(x+k,y);ctx.lineTo(x,y+k*.5);ctx.lineTo(x-k*.4,y);ctx.closePath();ctx.fill();
       }else{ctx.fillRect(x,y,1+r()*2,1);}
     }
+    if(kind==='forest'||kind==='swamp'){
+      // Painted moss islands and individual curved blades break up the broad floor colour.
+      for(let i=0;i<64;i++){const x=r()*s,y=r()*s;ctx.fillStyle=p[i%p.length];ctx.globalAlpha=.16+r()*.12;ctx.beginPath();ctx.ellipse(x,y,8+r()*22,3+r()*9,r()*6,0,Math.PI*2);ctx.fill();}
+      ctx.lineCap='round';for(let i=0;i<620;i++){const x=r()*s,y=r()*s,h=3+r()*8;ctx.strokeStyle=i%5===0?'#c4c494':p[i%p.length];ctx.globalAlpha=.18+r()*.18;ctx.lineWidth=.7+r()*.8;ctx.beginPath();ctx.moveTo(x,y);ctx.quadraticCurveTo(x-3,y-h*.4,x-2+r()*7,y-h);ctx.stroke();}
+      for(let i=0;i<26;i++){ctx.globalAlpha=.27;ctx.fillStyle=i%3?'#b9cba1':'#e1c8ad';const x=r()*s,y=r()*s;ctx.beginPath();ctx.ellipse(x,y,1.4,1,r()*6,0,Math.PI*2);ctx.fill();}
+    }
     for(let i=0;i<12;i++){
       const x=r()*s,y=r()*s,rx=2+r()*3;ctx.globalAlpha=.24;ctx.fillStyle=kind==='desert'?'#dbc6aa':kind==='crystal'?'#acb9cf':'#a6b29a';ctx.beginPath();ctx.ellipse(x,y,rx,rx*.6,r()*6,0,Math.PI*2);ctx.fill();
     }
+  }else if(kind==='canopy'){
+    // Overlapping leaf brushwork follows a lit crown rather than a flat green sphere.
+    const wash=ctx.createLinearGradient(30,20,460,490);wash.addColorStop(0,color(base,1.22));wash.addColorStop(.5,base);wash.addColorStop(1,color(base,.67));ctx.fillStyle=wash;ctx.fillRect(0,0,s,s);
+    for(let i=0;i<170;i++){const x=r()*s,y=r()*s,a=-.9+r()*1.8,k=8+r()*17;ctx.globalAlpha=.16+r()*.22;ctx.fillStyle=color(base,i%4===0?1.40:i%3===0?.62:1.10);ctx.beginPath();ctx.ellipse(x,y,k,k*.44,a,0,Math.PI*2);ctx.fill();if(i%4===0){ctx.strokeStyle=color(base,1.42);ctx.lineWidth=1;ctx.globalAlpha=.2;ctx.beginPath();ctx.moveTo(x-k*.6,y+2);ctx.quadraticCurveTo(x,y-2,x+k*.6,y-2);ctx.stroke();}}
   }else if(kind==='water'){
     ctx.lineCap='round';
     for(let i=0;i<45;i++){const x=r()*s,y=r()*s;ctx.globalAlpha=.06+r()*.045;ctx.strokeStyle=i%3?'#b4d1dd':'#9bace0';ctx.lineWidth=2+r()*4;ctx.beginPath();ctx.moveTo(x,y);ctx.bezierCurveTo(x+8,y-3,x+21,y+3,x+30+r()*26,y);ctx.stroke();}
@@ -53,7 +63,7 @@ export function paintedTexture(kind,base){
 export function paintedMaterial(kind,base,{flat=false,glow=0}={}){
   const key=[kind,base,flat,glow].join(':');if(materials.has(key))return materials.get(key);
   const map=paintedTexture(kind,base),parameters={color:map?'#ffffff':base,map,side:THREE.DoubleSide};
-  const mat=flat?new THREE.MeshBasicMaterial(parameters):new THREE.MeshStandardMaterial({...parameters,roughness:.91,metalness:0,flatShading:true,emissive:base,emissiveIntensity:glow});
+  const mat=flat?new THREE.MeshBasicMaterial(parameters):new THREE.MeshStandardMaterial({...parameters,roughness:.91,metalness:0,flatShading:kind==='stone',emissive:base,emissiveIntensity:glow});
   materials.set(key,mat);return mat;
 }
 export function labelTexture(text,{color='#fff5ce',stroke='#142c39',size=72}={}){
@@ -98,6 +108,12 @@ export function pathMaterial(biome,axis='vertical'){
     const paint=()=>{
       c.lineCap='round';c.strokeStyle=color;
       for(const[w,a]of[[155,.06],[141,.1],[126,.15],[112,.28]]){c.lineWidth=w;c.globalAlpha=a;stroke();c.stroke();}
+      // Uneven, worn stepping stones; the dirt still shows through their gaps.
+      for(let i=0;i<14;i++){
+        const y=i*42-8,x=256+Math.sin(y*.012)*16,offset=i%2?23:-22,w=22+(i%3)*6;
+        c.globalAlpha=.27;c.fillStyle=i%3?'#b7b8a0':'#d6c9aa';c.beginPath();c.moveTo(x+offset-w,y-11);c.lineTo(x+offset+w-3,y-15);c.lineTo(x+offset+w,y+11);c.lineTo(x+offset-w+4,y+13);c.closePath();c.fill();
+        c.strokeStyle='#354e5348';c.lineWidth=1.4;c.stroke();c.globalAlpha=.18;c.strokeStyle='#e6ddc3';c.beginPath();c.moveTo(x+offset-w+3,y-10);c.lineTo(x+offset+w-4,y-13);c.stroke();
+      }
       c.globalAlpha=.24;c.strokeStyle='#e7e3ca';c.lineWidth=2;
       for(let y=45;y<512;y+=102){c.beginPath();c.moveTo(212,y);c.quadraticCurveTo(255,y+6,296,y-7);c.stroke();}
       c.globalAlpha=.2;c.fillStyle='#647363';for(let i=0;i<7;i++){const y=30+i*78,x=256+Math.sin(y*.017)*23;c.beginPath();c.ellipse(x+(i%2?65:-65),y,5,2.5,.2,0,Math.PI*2);c.fill();}

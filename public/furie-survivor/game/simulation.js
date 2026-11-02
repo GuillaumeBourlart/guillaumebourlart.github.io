@@ -1,6 +1,8 @@
 // Deterministic, renderer-independent expedition. Ground angle = atan2(dx,dz).
 import { getHero, MAX_HERO_LEVEL } from './catalog.js';
 import { getHeroBaseStats, getHeroCombatStats } from './hero-stats.js';
+import {cooperativePacing} from './coop-pacing.js';
+import {stepMovement} from './movement.js';
 import { WORLD_RADIUS,CHUNK_SIZE,ACTIVE_CHUNK_RADIUS,biomeAt,worldChunkAt,createWorldData } from './world.js';
 export {biomeAt} from './world.js';
 const TAU=Math.PI*2, STEP=1/60, ARENA=WORLD_RADIUS, RIFT_ARENA_RADIUS=22, BASE_SPEED=7.2;
@@ -44,12 +46,12 @@ const RIFT_RELICS=Object.freeze([
   Object.freeze({id:'rift-area',title:'Éclat d’amplitude',description:'+6 % de portée et de taille pour cette expédition.',stat:'area',value:.06})
 ]);
 const ENEMIES={
-  slime:{radius:.53,hp:30,speed:6.3,damage:9,xp:4},
-  runner:{radius:.43,hp:25,speed:6.8,damage:8,xp:4},
-  brute:{radius:.85,hp:104,speed:4.6,damage:17,xp:12},
-  wisp:{radius:.47,hp:31,speed:6.1,damage:10,xp:5},
-  spitter:{radius:.63,hp:48,speed:5.3,damage:10,xp:7},
-  boss:{radius:1.65,hp:820,speed:3.25,damage:23,xp:80}
+  slime:{radius:.53,hp:30,speed:6.3,damage:16,xp:4},
+  runner:{radius:.43,hp:25,speed:6.8,damage:18,xp:4},
+  brute:{radius:.85,hp:104,speed:4.6,damage:30,xp:12},
+  wisp:{radius:.47,hp:31,speed:6.1,damage:20,xp:5},
+  spitter:{radius:.63,hp:48,speed:5.3,damage:22,xp:7},
+  boss:{radius:1.65,hp:820,speed:3.25,damage:30,xp:80}
 };
 function seedNumber(seed){if(Number.isFinite(seed))return Math.trunc(seed)>>>0;if(typeof seed!=='string')return 12345;let h=2166136261;for(let i=0;i<seed.length;i++)h=Math.imul(h^seed.charCodeAt(i),16777619);return h>>>0;}
 function randomFrom(seed){let n=seed>>>0;return()=>{n+=0x6D2B79F5;let t=Math.imul(n^n>>>15,1|n);t^=t+Math.imul(t^t>>>7,61|t);return((t^t>>>14)>>>0)/4294967296;};}
@@ -68,19 +70,22 @@ export const UPGRADES=Object.freeze({
   barrier:{title:'Égide renouvelée',icon:'shield',max:4},greed:{title:'Fièvre du trésor',icon:'coin',max:4},
   awakening:{title:'ÉVEIL · Résonance d’Azur',icon:'evolution',max:1}
 });
-export function createGame({seed=12345,heroId='lyra',heroLevel=1,bonuses={},runId}={}){
+export function createGame({seed=12345,heroId='lyra',heroLevel=1,bonuses={},runId,cooperative=null}={}){
   const runSeed=seedNumber(seed),hero=getHero(heroId),baseStats=getHeroBaseStats(hero.id),combatStats=getHeroCombatStats(hero.id,bonuses.points??heroLevel),family=ATTACK_PROFILES[hero.family]?hero.family:'orbit',profile=ATTACK_PROFILES[family];
   const permanentDamage=clamp(finite(bonuses.damage,1),1,4),permanentHP=clamp(finite(bonuses.maxHp,1),1,3),levelPermanent=clamp(Math.floor(finite(heroLevel,1)),1,MAX_HERO_LEVEL);
   const expeditionId=typeof runId==='string'&&runId.length?runId.slice(0,160):`run-${runSeed}-${hero.id}`;
-  let random,nextID,ticks,accumulator,pendingDash,spawnClock,spawnNumber,nextEliteAt,attackClock,novaClock,pendingUpgrades,pausedFrom,dashX,dashZ,orbitAngle,orbitRadius,chainReady,burstReady,riftOfferRetryAt,riftReturn;
+  let random,nextID,ticks,accumulator,pendingDash,spawnClock,spawnNumber,nextSiegeAt,siegeWarned,nextEliteAt,attackClock,novaClock,pendingUpgrades,pausedFrom,dashX,dashZ,orbitAngle,orbitRadius,chainReady,burstReady,riftOfferRetryAt,riftReturn;
   let spawnBounds=null,worldData,currentChunkKey='',indexedObstacles,indexedZones,indexedProps,propsDirty=false;
   const enemyData=new Map(),shotData=new Map(),upgradeCounts=new Map(),obstacleBins=new Map(),zoneBins=new Map(),propBins=new Map(),knownPOIs=new Set();
-  const id=()=>nextID++;
+  const id=()=>cooperative?.nextId?cooperative.nextId():nextID++;
+  const party=()=>cooperative?.players?.().filter(p=>p.hp>0)||[state.player];
+  const pacing=()=>cooperativePacing(state.t,cooperative?.population?.()||1);
+  const openingCount=()=>cooperative?cooperativePacing(0,cooperative.population?.()||1).openingSlimes:PACING.openingSlimes;
   function worldSlice(x,z){
-    const c=worldChunkAt(x,z),chunks=[];for(let ring=0;ring<=ACTIVE_CHUNK_RADIUS;ring++)for(let dz=-ring;dz<=ring;dz++)for(let dx=-ring;dx<=ring;dx++)if(Math.max(Math.abs(dx),Math.abs(dz))===ring)chunks.push(worldData.getChunk(c.x+dx,c.z+dz));
+    const c=worldChunkAt(x,z),chunks=[],seen=new Set(),centers=cooperative?[{x,z},...(cooperative.players?.()||[])]:[{x,z}];for(const center of centers){const pc=worldChunkAt(center.x,center.z);for(let ring=0;ring<=ACTIVE_CHUNK_RADIUS;ring++)for(let dz=-ring;dz<=ring;dz++)for(let dx=-ring;dx<=ring;dx++)if(Math.max(Math.abs(dx),Math.abs(dz))===ring){const key=(pc.x+dx)+':'+(pc.z+dz);if(!seen.has(key)){seen.add(key);chunks.push(worldData.getChunk(pc.x+dx,pc.z+dz));}}}
     return{obstacles:chunks.flatMap(c=>c.obstacles),pois:chunks.flatMap(c=>c.pois),zones:chunks.flatMap(c=>c.zones),traps:chunks.flatMap(c=>c.traps),breakables:chunks.flatMap(c=>c.breakables).filter(p=>!p.broken),pickups:chunks.flatMap(c=>c.pickups).filter(p=>!p.collected),gems:chunks.flatMap(c=>c.gems).filter(g=>!g.collected).sort((a,b)=>(a.x-x)**2+(a.z-z)**2-((b.x-x)**2+(b.z-z)**2)).slice(0,MAX_GEMS),world:{chunkX:c.x,chunkZ:c.z,chunkSize:CHUNK_SIZE,activeRadius:ACTIVE_CHUNK_RADIUS,activeChunks:chunks.map(c=>({id:c.id,x:c.x,z:c.z})),visitedChunks:worldData.visitedChunks,visitedCount:worldData.visitedCount}};
   }
-  function resetInternals(){random=randomFrom(runSeed);nextID=1;ticks=0;accumulator=0;pendingDash=false;spawnClock=.68;spawnNumber=0;nextEliteAt=PACING.eliteAt;attackClock=.1;novaClock=4;pendingUpgrades=[];pausedFrom='playing';dashX=0;dashZ=-1;orbitAngle=0;orbitRadius=profile.range;chainReady=0;burstReady=0;riftOfferRetryAt=0;riftReturn=null;worldData=createWorldData(runSeed);currentChunkKey='0:0';propsDirty=false;enemyData.clear();shotData.clear();upgradeCounts.clear();obstacleBins.clear();zoneBins.clear();propBins.clear();knownPOIs.clear();}
+  function resetInternals(){random=randomFrom(runSeed);nextID=1;ticks=0;accumulator=0;pendingDash=false;spawnClock=1.2;spawnNumber=0;nextSiegeAt=90;siegeWarned=false;nextEliteAt=cooperative?cooperativePacing(0).eliteAt:PACING.eliteAt;attackClock=.1;novaClock=4;pendingUpgrades=[];pausedFrom='playing';dashX=0;dashZ=-1;orbitAngle=0;orbitRadius=profile.range;chainReady=0;burstReady=0;riftOfferRetryAt=0;riftReturn=null;worldData=createWorldData(runSeed);currentChunkKey='0:0';propsDirty=false;enemyData.clear();shotData.clear();upgradeCounts.clear();obstacleBins.clear();zoneBins.clear();propBins.clear();knownPOIs.clear();}
   function makeState(){const world=worldSlice(0,0),maxHp=combatStats.maxHp,mapPOIs=world.pois.filter(p=>p.discovered);for(const poi of mapPOIs)knownPOIs.add(poi.id);return{
     phase:'menu',runId:expeditionId,seed:runSeed,t:0,heroId:hero.id,heroLevel:levelPermanent,baseStats:{...baseStats,trait:{...baseStats.trait}},attackFamily:family,wave:1,bossesDefeated:0,biome:'forest',nextBossAt:PACING.firstRift,nextRiftAt:PACING.firstRift,
     rift:{phase:'waiting',poiId:null,tier:1,offerAt:0,expiresAt:0,activation:0,activationDuration:PACING.riftActivation,bossId:null,completedAt:0,arenaActive:false,offeredReward:{...RIFT_RELICS[0],tier:1},reward:null},riftsCleared:0,relics:[],upgradeSource:null,
@@ -95,7 +100,7 @@ export function createGame({seed=12345,heroId='lyra',heroLevel=1,bonuses={},runI
   function rebuildObstacles(){for(const [bins,list,size]of[[obstacleBins,state.obstacles,8],[zoneBins,state.zones,16],[propBins,state.breakables,8]]){bins.clear();for(const o of list){const key=`${Math.floor(o.x/size)},${Math.floor(o.z/size)}`;if(!bins.has(key))bins.set(key,[]);bins.get(key).push(o);}}indexedObstacles=state.obstacles;indexedZones=state.zones;indexedProps=state.breakables;}
   rebuildObstacles();
   function rememberPoi(poi){if(!knownPOIs.has(poi.id)){knownPOIs.add(poi.id);state.mapPOIs.push(poi);}}
-  function streamWorld(){if(state.rift.arenaActive)return false;const c=worldChunkAt(state.player.x,state.player.z),key=`${c.x}:${c.z}`;if(key===currentChunkKey)return false;currentChunkKey=key;const next=worldSlice(state.player.x,state.player.z),ids=new Set(next.pois.map(p=>p.id)),oldTraps=new Set(state.traps.map(t=>t.id));for(const poi of state.pois)if((poi.dynamic||poi.type==='camp'&&poi.active&&!poi.completed)&&!ids.has(poi.id))next.pois.push(poi);for(const trap of next.traps)if(!oldTraps.has(trap.id)){trap.phase='idle';trap.phaseTime=trap.phaseDuration=trap.phaseProgress=0;trap.hitIds=[];}Object.assign(state,next);state.worldRevision++;for(const poi of state.pois)if(poi.discovered)rememberPoi(poi);rebuildObstacles();return true;}
+  function streamWorld(){if(state.rift.arenaActive)return false;const c=worldChunkAt(state.player.x,state.player.z),key=cooperative?[`${c.x}:${c.z}`,...party().map(p=>{const q=worldChunkAt(p.x,p.z);return `${q.x}:${q.z}`;})].sort().join('|'):`${c.x}:${c.z}`;if(key===currentChunkKey)return false;currentChunkKey=key;const next=worldSlice(state.player.x,state.player.z),ids=new Set(next.pois.map(p=>p.id)),oldTraps=new Set(state.traps.map(t=>t.id));for(const poi of state.pois)if((poi.dynamic||poi.type==='camp'&&poi.active&&!poi.completed)&&!ids.has(poi.id))next.pois.push(poi);for(const trap of next.traps)if(!oldTraps.has(trap.id)){trap.phase='idle';trap.phaseTime=trap.phaseDuration=trap.phaseProgress=0;trap.hitIds=[];}Object.assign(state,next);state.worldRevision++;for(const poi of state.pois)if(poi.discovered)rememberPoi(poi);rebuildObstacles();return true;}
   function nearbyObstacles(x,z){const list=[],cx=Math.floor(x/8),cz=Math.floor(z/8);for(let dx=-1;dx<=1;dx++)for(let dz=-1;dz<=1;dz++){const bin=obstacleBins.get(`${cx+dx},${cz+dz}`);if(bin)list.push(...bin);}return list;}
   function nearbyProps(x,z,range=2){const list=[],cx=Math.floor(x/8),cz=Math.floor(z/8),r=Math.max(1,Math.ceil((range+1)/8));for(let dx=-r;dx<=r;dx++)for(let dz=-r;dz<=r;dz++)for(const p of propBins.get(`${cx+dx},${cz+dz}`)||[])if(!p.broken&&p.hp>0)list.push(p);return list;}
   function terrainAt(x,z){if(state.rift.arenaActive)return'normal';const cx=Math.floor(x/16),cz=Math.floor(z/16);let result='normal';for(let dx=-1;dx<=1;dx++)for(let dz=-1;dz<=1;dz++)for(const zone of zoneBins.get(`${cx+dx},${cz+dz}`)||[])if((x-zone.x)**2+(z-zone.z)**2<zone.radius**2){if(zone.type==='mud')return'mud';result='ice';}return result;}
@@ -111,19 +116,19 @@ export function createGame({seed=12345,heroId='lyra',heroLevel=1,bonuses={},runI
     spawnBounds={minX:bounds.minX,maxX:bounds.maxX,minZ:bounds.minZ,maxZ:bounds.maxZ};return true;
   }
   function currentSpawnBounds(){const p=state.player;return spawnBounds||{minX:p.x-18,maxX:p.x+18,minZ:p.z-18,maxZ:p.z+18};}
-  function outsideView(x,z,radius=0){const b=currentSpawnBounds(),margin=5+radius;return x<b.minX-margin||x>b.maxX+margin||z<b.minZ-margin||z>b.maxZ+margin;}
+  function outsideView(x,z,radius=0){const views=cooperative?.views?.()||[currentSpawnBounds()],margin=5+radius;return views.every(b=>x<b.minX-margin||x>b.maxX+margin||z<b.minZ-margin||z>b.maxZ+margin);}
   function validSpawn(pos,radius){
-    const d=hypot(pos.x-state.player.x,pos.z-state.player.z),edge=state.rift.arenaActive?RIFT_ARENA_RADIUS:ARENA,entryClear=state.rift.arenaActive?d>=13:outsideView(pos.x,pos.z,radius);return Number.isFinite(pos.x)&&Number.isFinite(pos.z)&&entryClear&&hypot(pos.x,pos.z)<=edge-radius-.45&&d<=120&&nearbyObstacles(pos.x,pos.z).every(o=>hypot(pos.x-o.x,pos.z-o.z)>=o.radius+radius+.15)&&state.traps.every(t=>hypot(pos.x-t.x,pos.z-t.z)>t.radius+radius+.5);
+    const d=cooperative?Math.min(...party().map(p=>hypot(pos.x-p.x,pos.z-p.z))):hypot(pos.x-state.player.x,pos.z-state.player.z),edge=state.rift.arenaActive?RIFT_ARENA_RADIUS:ARENA,entryClear=state.rift.arenaActive?d>=13:outsideView(pos.x,pos.z,radius);return Number.isFinite(pos.x)&&Number.isFinite(pos.z)&&entryClear&&hypot(pos.x,pos.z)<=edge-radius-.45&&d<=120&&nearbyObstacles(pos.x,pos.z).every(o=>hypot(pos.x-o.x,pos.z-o.z)>=o.radius+radius+.15)&&state.traps.every(t=>hypot(pos.x-t.x,pos.z-t.z)>t.radius+radius+.5);
   }
   function validInitial(pos,radius){const d=hypot(pos.x,pos.z);return d>=9&&d<=14&&nearbyObstacles(pos.x,pos.z).every(o=>hypot(pos.x-o.x,pos.z-o.z)>=o.radius+radius+.15)&&state.traps.every(t=>hypot(pos.x-t.x,pos.z-t.z)>t.radius+2);}
-  function initialPosition(radius,index){for(let attempt=0;attempt<120;attempt++){const a=attempt<50?index*TAU/PACING.openingSlimes+(random()-.5)*.5:random()*TAU,d=9+random()*5,pos={x:Math.sin(a)*d,z:Math.cos(a)*d,radius};resolveCircle(pos);if(validInitial(pos,radius)&&state.enemies.every(e=>hypot(e.x-pos.x,e.z-pos.z)>e.radius+radius+1.5))return pos;}return null;}
-  function safeSpawn(radius=.6){
+  function initialPosition(radius,index){for(let attempt=0;attempt<120;attempt++){const a=attempt<50?index*TAU/openingCount()+(random()-.5)*.5:random()*TAU,d=9+random()*5,pos={x:Math.sin(a)*d,z:Math.cos(a)*d,radius};resolveCircle(pos);if(validInitial(pos,radius)&&state.enemies.every(e=>hypot(e.x-pos.x,e.z-pos.z)>e.radius+radius+1.5))return pos;}return null;}
+  function safeSpawn(radius=.6,preferredSide){
     if(state.rift.arenaActive){for(let attempt=0;attempt<24;attempt++){const a=random()*TAU,d=RIFT_ARENA_RADIUS-radius-1,pos={x:Math.sin(a)*d,z:Math.cos(a)*d,radius};if(validSpawn(pos,radius))return pos;}return null;}
-    const b=currentSpawnBounds(),margin=5+radius,edge=Math.floor(random()*4);
+    const views=cooperative?.views?.(),b=views?.length?views[Math.floor(random()*views.length)]:currentSpawnBounds(),margin=5+radius,edge=preferredSide??Math.floor(random()*4);
     // Sample the edge, not the diagonal of a circle: enemies enter promptly
     // even on a wide display. Impossible edges are skipped without projection.
     for(let i=0;i<64;i++){
-      const side=(edge+i)%4,u=random(),padding=margin+.3+random()*2.4;
+      const side=(edge+Math.floor(i/16))%4,u=random(),padding=margin+.3+random()*2.4;
       const pos=side===0?{x:b.minX-padding,z:b.minZ+(b.maxZ-b.minZ)*u}:side===1?{x:b.maxX+padding,z:b.minZ+(b.maxZ-b.minZ)*u}:side===2?{x:b.minX+(b.maxX-b.minX)*u,z:b.minZ-padding}:{x:b.minX+(b.maxX-b.minX)*u,z:b.maxZ+padding};
       pos.radius=radius;if(hypot(pos.x,pos.z)>ARENA-radius-.45)continue;
       resolveCircle(pos);if(validSpawn(pos,radius))return pos;
@@ -136,26 +141,26 @@ export function createGame({seed=12345,heroId='lyra',heroLevel=1,bonuses={},runI
     }
     return null;
   }
-  function metadata(e){let data=enemyData.get(e.id);if(!data){const b=ENEMIES[e.type]||ENEMIES.slime;data={speed:b.speed,damage:b.damage,xp:b.xp,dead:false,orbitNextHit:0,chargeCD:3+random()*2,chargeTime:0,chargeX:0,chargeZ:1,shootCD:1.8+random(),action:'',recover:0,numberAt:0,turn:e.id%2?1:-1,knockX:0,knockZ:0,poison:0,poisonPower:0,slow:0};enemyData.set(e.id,data);}return data;}
-  function gatedEnemyType(type){return type==='boss'||state.t+1e-9>=(PACING.enemyGates[type]??0)?type:state.t+1e-9>=PACING.enemyGates.runner?'runner':'slime';}
-  function spawnEnemy(type='slime',{elite=false,poiId,bossKind,bossTier=1,initial=false,initialIndex=0}={}){
-    type=gatedEnemyType(type);elite=elite&&state.t+1e-9>=PACING.eliteAt;
-    const b=ENEMIES[type]||ENEMIES.slime,radius=elite&&type!=='boss'?b.radius*1.25:b.radius,pos=initial?initialPosition(radius,initialIndex):safeSpawn(radius);if(!pos)return null;
-    if(state.enemies.length>=MAX_ENEMIES){
+  function metadata(e){const shared=cooperative?.enemyData||enemyData;let data=shared.get(e.id);if(!data){const b=ENEMIES[e.type]||ENEMIES.slime;data={speed:b.speed,damage:b.damage,xp:b.xp,dead:false,orbitNextHit:0,chargeCD:3+random()*2,chargeTime:0,chargeX:0,chargeZ:1,shootCD:1.8+random(),action:'',recover:0,numberAt:0,turn:e.id%2?1:-1,knockX:0,knockZ:0,poison:0,poisonPower:0,slow:0};shared.set(e.id,data);}return data;}
+  function gatedEnemyType(type){return type==='boss'||state.t+1e-9>=((cooperative?pacing().enemyGates:PACING.enemyGates)[type]??0)?type:state.t+1e-9>=(cooperative?pacing().enemyGates.runner:PACING.enemyGates.runner)?'runner':'slime';}
+  function spawnEnemy(type='slime',{elite=false,poiId,bossKind,bossTier=1,initial=false,initialIndex=0,side}={}){
+    type=gatedEnemyType(type);elite=elite&&state.t+1e-9>=(cooperative?pacing().eliteAt:PACING.eliteAt);
+    const b=ENEMIES[type]||ENEMIES.slime,radius=elite&&type!=='boss'?b.radius*1.25:b.radius,pos=initial?initialPosition(radius,initialIndex):safeSpawn(radius,side);if(!pos)return null;
+    if(state.enemies.length>=(cooperative?pacing().maxEnemies:MAX_ENEMIES)){
       if(type!=='boss'&&!elite)return null;let farIndex=-1,far=-1;
       state.enemies.forEach((e,i)=>{const d=distance2(e,state.player);if(e.type!=='boss'&&!e.elite&&!metadata(e).poiId&&outsideView(e.x,e.z,e.radius)&&d>far){far=d;farIndex=i;}});
       if(farIndex<0)return null;enemyData.delete(state.enemies[farIndex].id);state.enemies.splice(farIndex,1);
     }
     const minutes=state.t/60,scale=1+minutes*.18+Math.pow(minutes,1.55)*.065,tier=clamp(Math.floor(finite(bossTier,1)),1,10000),bossGrowth=Math.min(9,tier-1);
-    const hp=type==='boss'?Math.min(1e8,Math.round(900*(1+(tier-1)*.65))):Math.round(b.hp*scale*(elite?2.5:1));
+    const hp=type==='boss'?Math.min(1e8,Math.round(900*(1+(tier-1)*.65))):Math.round(b.hp*(cooperative?pacing().hpGrowth:scale)*(cooperative?pacing().hpMultiplier:1)*(elite?2.5:1));
     const e={id:id(),type,initial,x:pos.x,z:pos.z,spawnX:pos.x,spawnZ:pos.z,spawnAt:state.t,angle:Math.atan2(state.player.x-pos.x,state.player.z-pos.z),radius,hp,maxHp:hp,telegraph:0,telegraphDuration:0,elite,biome:biomeAt(pos.x,pos.z),bossKind:bossKind||`${state.biome}-guardian`,bossTier:type==='boss'?tier:0,action:'move',attackKind:'',attackAngle:0,gaitPhase:0,hop:0,moveSpeed:0,vx:0,vz:0,hitFlash:0,hitDirection:{x:0,z:0},terrain:'normal'};
     // Last validation is deliberately after every placement/collision operation.
-    resolveCircle(e);if(!(initial?validInitial(e,radius):validSpawn(e,radius)))return null;
-    e.spawnX=e.x;e.spawnZ=e.z;state.enemies.push(e);const data=metadata(e);data.speed=type==='boss'?3.25+Math.min(.75,bossGrowth*.085):b.speed+Math.min(1.2,minutes*.085);data.damage=type==='boss'?Math.round(24*(1+bossGrowth*.13)):Math.round(b.damage*(1+minutes*.10+Math.pow(minutes,1.35)*.015)*(elite?1.22:1));data.xp=Math.round(b.xp*(elite&&type!=='boss'?2:1));data.poiId=poiId;return e;
+    if(cooperative&&type==='boss'){e.hp=Math.round(e.hp*pacing().bossHpMultiplier);e.maxHp=e.hp;}resolveCircle(e);if(!(initial?validInitial(e,radius):validSpawn(e,radius)))return null;
+    e.spawnX=e.x;e.spawnZ=e.z;state.enemies.push(e);const data=metadata(e);data.speed=type==='boss'?3.25+Math.min(.75,bossGrowth*.085):b.speed+Math.min(1.2,minutes*.085);data.damage=type==='boss'?Math.round(30*(1+bossGrowth*.13)):Math.round(b.damage*(1+minutes*.10+Math.pow(minutes,1.35)*.015)*(elite?1.22:1));data.xp=Math.round(b.xp*(elite&&type!=='boss'?2:1));if(cooperative){const d=pacing();data.speed=type==='boss'?data.speed:d.speeds[type]+d.speedGrowth;data.damage=type==='boss'?data.damage:Math.round(b.damage*d.damageGrowth*(elite?1.15:1));data.xp=b.xp/d.xpDivisor;}data.poiId=poiId;return e;
   }
-  function addGem(x,z,value){const c=worldChunkAt(x,z),chunk=worldData.getChunk(c.x,c.z);chunk.gems=chunk.gems.filter(g=>!g.collected);let nearest=null,best=100;for(const g of chunk.gems){const d=(g.x-x)**2+(g.z-z)**2;if(d<best){best=d;nearest=g;}}if(nearest){nearest.value=Math.min(100000,nearest.value+value);if(!state.gems.includes(nearest))state.gems.push(nearest);}else{const gem={id:id(),x,z,value,collected:false};chunk.gems.push(gem);state.gems.push(gem);}if(state.gems.length>MAX_GEMS)state.gems.sort((a,b)=>distance2(a,state.player)-distance2(b,state.player)).splice(MAX_GEMS);}
+  function addGem(x,z,value){if(cooperative?.addGem)return cooperative.addGem(x,z,value);const c=worldChunkAt(x,z),chunk=worldData.getChunk(c.x,c.z);chunk.gems=chunk.gems.filter(g=>!g.collected);let nearest=null,best=100;for(const g of chunk.gems){const d=(g.x-x)**2+(g.z-z)**2;if(d<best){best=d;nearest=g;}}if(nearest){nearest.value=Math.min(100000,nearest.value+value);if(!state.gems.includes(nearest))state.gems.push(nearest);}else{const gem={id:id(),x,z,value,collected:false};chunk.gems.push(gem);state.gems.push(gem);}if(state.gems.length>MAX_GEMS)state.gems.sort((a,b)=>distance2(a,state.player)-distance2(b,state.player)).splice(MAX_GEMS);}
   function finish(outcome){if(['won','lost','menu'].includes(state.phase))return false;state.outcome=outcome;state.phase=outcome==='death'?'lost':'won';state.offers=[];state.upgradeSource=null;pendingUpgrades=[];state.player.vx=state.player.vz=0;accumulator=0;pendingDash=false;say(outcome==='death'?'Expédition terminée. Tous tes gains sont conservés.':'Retour au camp. Tous tes gains sont conservés.',999);return true;}
-  function heal(amount){const p=state.player,before=p.hp;p.hp=Math.min(p.maxHp,p.hp+Math.max(0,amount));if(p.hp>before&&amount>=2)effect('heal',p.x,p.z,1.1,.5,{color:'#83efac'});}
+  function heal(amount){const p=state.player,before=p.hp;if(cooperative&&p.hp<=0)return;p.hp=Math.min(p.maxHp,p.hp+Math.max(0,amount));if(p.hp>before&&amount>=2)effect('heal',p.x,p.z,1.1,.5,{color:'#83efac'});}
   function nearestEnemy(x,z,range,exclude){let best=range*range,found=null;for(const e of state.enemies){if(e.hp<=0||exclude?.has(e.id))continue;const d=(e.x-x)**2+(e.z-z)**2;if(d<best){best=d;found=e;}}return found;}
   function nearestTarget(x,z,range,exclude){const enemy=nearestEnemy(x,z,range,exclude);if(enemy)return enemy;let best=range*range,found=null;for(const prop of nearbyProps(x,z,range)){if(exclude?.has(prop.id))continue;const d=(prop.x-x)**2+(prop.z-z)**2;if(d<best){best=d;found=prop;}}return found;}
   function hurtProp(prop,raw){
@@ -176,10 +181,10 @@ export function createGame({seed=12345,heroId='lyra',heroLevel=1,bonuses={},runI
     if(state.stats.chain>0&&state.t>=chainReady&&random()<.22+state.stats.chain*.04){chainReady=state.t+.16;const hit=new Set([e.id]),points=[{x:e.x,z:e.z}];let last=e;for(let i=0;i<1+state.stats.chain;i++){const next=nearestEnemy(last.x,last.z,4.2*state.stats.area,hit);if(!next)break;hit.add(next.id);points.push({x:next.x,z:next.z});hurtEnemy(next,damage*.42,{proc:false,critical:false,from:last,knock:.5});last=next;}if(points.length>1)effect('lightning',e.x,e.z,1,.22,{points,color:'#a5dcff'});}
     if(state.stats.burst>0&&state.t>=burstReady&&random()<.18+state.stats.burst*.035){burstReady=state.t+.2;const radius=(1.5+state.stats.burst*.2)*state.stats.area;effect('explosion',e.x,e.z,radius,.35,{color:'#ffbc6b'});for(const other of state.enemies)if(other.id!==e.id&&other.hp>0&&distance2(other,e)<(radius+other.radius)**2)hurtEnemy(other,damage*(.42+state.stats.burst*.06),{proc:false,critical:false,from:e,knock:2.5});}
   }
-  function hurtPlayer(damage,x,z){const p=state.player;if(p.invuln>0||state.phase!=='playing')return 0;if(state.stats.barrier>0&&state.t>=state.stats.barrierReady){state.stats.barrierReady=state.t+Math.max(9,28-state.stats.barrier*4);p.invuln=.35;effect('nova',p.x,p.z,1.8,.45,{color:'#b9e8ff'});say('L’Égide absorbe le coup !',1.6);return 0;}const reduced=Math.max(0,finite(damage))*(1-clamp(finite(state.stats.defense),0,.55));if(reduced<=0)return 0;const lost=Math.min(p.hp,reduced);p.hp=Math.max(0,p.hp-reduced);p.invuln=.66;p.hitFlash=.24;p.hitStun=.08;effect('damage',p.x,p.z,1,.6,{amount:Math.round(lost),crit:false,targetId:'player',hostile:true,color:'#ff8193'});effect('hit',p.x,p.z,1.1,.25,{color:'#ff677e'});const dx=p.x-x,dz=p.z-z,d=hypot(dx,dz)||1;p.hitDirection={x:dx/d,z:dz/d};p.x+=dx/d*.3;p.z+=dz/d*.3;resolveCircle(p);if(p.hp<=0){if(state.rift.arenaActive)failRift();else finish('death');}return lost;}
+  function hurtPlayer(damage,x,z){const p=state.player;if(p.invuln>0||state.phase!=='playing')return 0;if(state.stats.barrier>0&&state.t>=state.stats.barrierReady){state.stats.barrierReady=state.t+Math.max(9,28-state.stats.barrier*4);p.invuln=.35;effect('nova',p.x,p.z,1.8,.45,{color:'#b9e8ff'});say('L’Égide absorbe le coup !',1.6);return 0;}const reduced=Math.max(0,finite(damage))*(1-clamp(finite(state.stats.defense),0,.55));if(reduced<=0)return 0;const lost=Math.min(p.hp,reduced);p.hp=Math.max(0,p.hp-reduced);p.invuln=.66;p.hitFlash=.24;p.hitStun=.08;effect('damage',p.x,p.z,1,.6,{amount:Math.round(lost),crit:false,targetId:'player',hostile:true,color:'#ff8193'});effect('hit',p.x,p.z,1.1,.25,{color:'#ff677e'});const dx=p.x-x,dz=p.z-z,d=hypot(dx,dz)||1;p.hitDirection={x:dx/d,z:dz/d};p.x+=dx/d*.3;p.z+=dz/d*.3;resolveCircle(p);if(p.hp<=0){if(cooperative){p.downedAt=state.t;p.vx=p.vz=0;}else if(state.rift.arenaActive)failRift();else finish('death');}return lost;}
   const count=key=>upgradeCounts.get(key)||0;
   function cadenceDescription(percent){if(family==='orbit')return`+${percent} % de cadence : satellites plus rapides ET impacts plus fréquents.`;if(family==='vortex')return`+${percent} % de cadence : vortex invoqués plus souvent et dégâts plus fréquents.`;if(family==='mines')return`+${percent} % de cadence : pose tes mines plus rapidement.`;if(['hammer','fists','scythe','spear'].includes(family))return`+${percent} % de cadence : tes frappes se déclenchent plus rapidement.`;return`+${percent} % de cadence : tes ${family==='wave'?'ondes':family==='lightning'?'éclairs':'tirs'} se déclenchent plus rapidement.`;}
-  function queueUpgrade(source){pendingUpgrades.push({minimumRarity:'common',...source});}
+  function queueUpgrade(source){pendingUpgrades.push({minimumRarity:'common',...source});if(cooperative&&source.kind!=='level')cooperative.reward?.(source);}
   function offer(key){
     const def=UPGRADES[key],roll=random(),luck=clamp(state.stats.luck,0,.25);let rarity=roll<.07+luck*.42?'epic':roll<.31+luck?'rare':'common';if(['chain','burst','awakening'].includes(key))rarity='epic';if((key==='amount'||state.upgradeSource?.minimumRarity==='rare')&&rarity==='common')rarity='rare';const m=rarity==='epic'?1.7:rarity==='rare'?1.3:1;let value=0,description='';
     if(key==='damage'){value=Math.round(18*m)/100;description=`+${Math.round(value*100)} % de dégâts de base pour toutes tes attaques.`;}
@@ -217,7 +222,7 @@ export function createGame({seed=12345,heroId='lyra',heroLevel=1,bonuses={},runI
     const old=state.upgrades.find(u=>u.id===key);if(old)old.level=count(key);else state.upgrades.push({id:key,title:UPGRADES[key].title,level:count(key),icon:UPGRADES[key].icon});if(family==='orbit')refreshOrbits();pendingUpgrades.shift();state.offers=[];if(pendingUpgrades.length){state.upgradeSource={...pendingUpgrades[0]};makeOffers();}else{state.upgradeSource=null;state.phase='playing';state.player.invuln=Math.max(state.player.invuln,.35);}return true;
   }
   function reroll(){if(state.phase!=='upgrade'||state.rerolls<=0)return false;const old=state.offers.map(o=>o.id);state.rerolls--;makeOffers(old);return true;}
-  function addShot(type,x,z,vx,vz,radius,data={},extra={}){if(state.projectiles.length>=MAX_PROJECTILES)return null;const hostile=extra.hostile===true,speedFactor=hostile?1:state.stats.velocity,shot={id:id(),type,family,x,z,vx:vx*speedFactor,vz:vz*speedFactor,radius,angle:Math.atan2(vx,vz),y:.65,color:hero.color,hostile,...extra};state.projectiles.push(shot);shotData.set(shot.id,{life:1.5,age:0,damage:profile.damage*state.stats.damage,hit:new Set(),...data});return shot;}
+  function addShot(type,x,z,vx,vz,radius,data={},extra={}){if(state.projectiles.length>=(cooperative?pacing().projectilesPerPlayer:MAX_PROJECTILES))return null;const hostile=extra.hostile===true,speedFactor=hostile?1:state.stats.velocity,shot={id:id(),type,family,x,z,vx:vx*speedFactor,vz:vz*speedFactor,radius,angle:Math.atan2(vx,vz),y:.65,color:hero.color,hostile,...(cooperative?{ownerId:cooperative.actorId}:{}),...extra};state.projectiles.push(shot);shotData.set(shot.id,{life:1.5,age:0,damage:profile.damage*state.stats.damage,hit:new Set(),...data});return shot;}
   function refreshOrbits(){for(const shot of state.projectiles)if(shot.type==='orbit')shotData.delete(shot.id);state.projectiles=state.projectiles.filter(p=>p.type!=='orbit');for(let i=0;i<profile.count+state.stats.amount;i++)addShot('orbit',state.player.x,state.player.z,0,0,.48*state.stats.area,{life:999999},{orbitIndex:i});positionOrbits();}
   function positionOrbits(){const orbs=state.projectiles.filter(p=>p.type==='orbit');orbs.forEach((orb,i)=>{const a=orbitAngle+i*TAU/orbs.length;orb.x=state.player.x+Math.sin(a)*orbitRadius;orb.z=state.player.z+Math.cos(a)*orbitRadius;orb.angle=a;orb.radius=.48*state.stats.area;});}
   function explosion(x,z,radius,damage,color=hero.color){effect('explosion',x,z,radius,.4,{color});for(const e of targetsNear(x,z,radius))if(e.hp>0&&(e.x-x)**2+(e.z-z)**2<(radius+e.radius)**2)hurtEnemy(e,damage,{from:{x,z},knock:5});}
@@ -247,18 +252,22 @@ export function createGame({seed=12345,heroId='lyra',heroLevel=1,bonuses={},runI
     }
   }
   function updatePlayer(input){
-    const p=state.player;p.dashCD=Math.max(0,p.dashCD-STEP);p.invuln=Math.max(0,p.invuln-STEP);p.hitFlash=Math.max(0,p.hitFlash-STEP);p.hitStun=Math.max(0,p.hitStun-STEP);const ix=clamp(finite(input?.x),-1,1),iz=clamp(finite(input?.z),-1,1),m=hypot(ix,iz),normal=Math.max(1,m),x=ix/normal,z=iz/normal,terrain=terrainAt(p.x,p.z),factor=terrain==='mud'?.62:1;
-    if(pendingDash&&p.dashCD<=0){dashX=m>.05?ix/m:Math.sin(p.angle);dashZ=m>.05?iz/m:Math.cos(p.angle);p.dashTime=.2;p.dashCD=2.6/state.stats.dashRecharge;p.invuln=Math.max(p.invuln,.34);effect('dash',p.x,p.z,1.15,.32,{angle:Math.atan2(dashX,dashZ)});}pendingDash=false;
-    if(p.dashTime>0){p.vx=dashX*23;p.vz=dashZ*23;p.dashTime=Math.max(0,p.dashTime-STEP);}else{const blend=1-Math.exp(-(terrain==='ice'?(m>.05?5.5:2.8):22)*STEP),speed=p.speed*factor*(p.hitStun>0?.3:1),momentum=hypot(p.vx,p.vz),limit=p.speed*1.12;if(terrain==='ice'&&momentum>limit){p.vx*=limit/momentum;p.vz*=limit/momentum;}p.vx+=(x*speed-p.vx)*blend;p.vz+=(z*speed-p.vz)*blend;}
-    if(m>.05)p.angle=Math.atan2(ix,iz);p.x=finite(p.x)+p.vx*STEP;p.z=finite(p.z)+p.vz*STEP;resolveCircle(p);const currentTerrain=terrainAt(p.x,p.z);if(currentTerrain!==p.terrain){p.terrain=currentTerrain;effect('terrain-entry',p.x,p.z,1,.55,{terrain:currentTerrain,color:currentTerrain==='ice'?'#b4e9ff':currentTerrain==='mud'?'#ba9974':'#c9e5ac'});}p.terrainMultiplier=currentTerrain==='mud'?.62:1;if(!state.rift.arenaActive){const biome=biomeAt(p.x,p.z);if(biome!==state.biome){state.biome=biome;say(state.biomes.find(b=>b.id===biome)?.name||biome,3.5);}}if(state.stats.regen>0)p.hp=Math.min(p.maxHp,p.hp+state.stats.regen*STEP);
+    const p=state.player,result=stepMovement(p,state.stats,{...input,dash:pendingDash},{terrain:terrainAt,resolve:resolveCircle});pendingDash=false;
+    if(result.dashed)effect('dash',p.x,p.z,1.15,.32,{angle:Math.atan2(p.dashX,p.dashZ)});
+    if(result.previousTerrain!==undefined&&result.previousTerrain!==p.terrain)effect('terrain-entry',p.x,p.z,1,.55,{terrain:p.terrain,color:p.terrain==='ice'?'#b4e9ff':p.terrain==='mud'?'#ba9974':'#c9e5ac'});
+    if(!state.rift.arenaActive){const biome=biomeAt(p.x,p.z);if(biome!==state.biome){state.biome=biome;say(state.biomes.find(b=>b.id===biome)?.name||biome,3.5);}}if(state.stats.regen>0)p.hp=Math.min(p.maxHp,p.hp+state.stats.regen*STEP);
   }
   function updateSpawns(){
     state.wave=1+Math.floor((state.t+1e-9)/60);updateRift();if(state.rift.arenaActive)return;
+    if(cooperative){
+      if(!siegeWarned&&state.t>=nextSiegeAt-3){siegeWarned=true;say('La horde se rassemble tout autour. Garde une issue !',3.5);}
+      if(state.t>=nextSiegeAt){const count=Math.ceil((2+Math.min(4,Math.floor((state.t-90)/120)))*(1+.3*(pacing().players-1)));for(let side=0;side<4;side++)for(let i=0;i<count;i++)spawnEnemy(i%3===2?'spitter':i%2?'runner':'slime',{side});nextSiegeAt=state.t+60;siegeWarned=false;}
+    }
     if(state.t+1e-9>=nextEliteAt){if(spawnEnemy('brute',{elite:true})){nextEliteAt=state.t+Math.max(48,78-state.t/40);say('Une élite approche. Attention à sa charge !');}else nextEliteAt=state.t+1;}
-    spawnClock-=STEP;if(spawnClock>0)return;spawnClock+=Math.max(.24,.68-state.t/1500);spawnNumber++;
-    const batch=Math.min(4,1+Math.floor(state.t/180));
+    spawnClock-=STEP;if(spawnClock>0)return;spawnClock+=cooperative?1/pacing().spawnRate:Math.max(.24,.68-state.t/1500);spawnNumber++;
+    const batch=cooperative?1:Math.min(4,1+Math.floor(state.t/180));
     for(let n=0;n<batch;n++){const roll=random(),pressure=Math.min(.12,state.t/6000);let type=roll<.39-pressure?'slime':roll<.68-pressure?'runner':roll<.81?'wisp':roll<.93?'spitter':'brute';
-      if(state.biome==='crystal'&&roll<.27)type='wisp';if(state.biome==='swamp'&&roll<.25)type='spitter';if(state.biome==='desert'&&roll<.19)type='brute';spawnEnemy(type);}
+      if(state.biome==='crystal'&&roll<.27)type='wisp';if(state.biome==='swamp'&&roll<.25)type='spitter';if(state.biome==='desert'&&roll<.19)type='brute';spawnEnemy(type,cooperative?{side:spawnNumber%4}:{});}
   }
   function riftPosition(){
     const p=state.player,radius=PACING.riftRadius;
@@ -279,7 +288,7 @@ export function createGame({seed=12345,heroId='lyra',heroLevel=1,bonuses={},runI
     effect('rift-enter',0,0,RIFT_ARENA_RADIUS,1.2,{color:'#be98ff',tier:state.rift.tier});say(`Salle de faille · palier ${state.rift.tier}. Bats le gardien, ou tombe et retourne sur l’île.`,5);return true;
   }
   function leaveRiftArena(){
-    if(!riftReturn)return false;const back=riftReturn,duration=state.t-back.enteredAt;state.rift.arenaActive=false;state.enemies=back.enemies;state.gems=back.gems;state.projectiles=back.projectiles;state.effects=back.effects;state.pois=back.pois;state.obstacles=back.obstacles;state.zones=back.zones;state.traps=back.traps;state.breakables=back.breakables;state.pickups=back.pickups;state.world=back.world;state.biome=back.biome;currentChunkKey=back.currentChunkKey;enemyData.clear();for(const [key,value] of back.enemyMeta)enemyData.set(key,value);shotData.clear();for(const [key,value] of back.shotMeta)shotData.set(key,value);Object.assign(state.player,{x:back.player.x,z:back.player.z,angle:back.player.angle,vx:0,vz:0,terrain:'normal'});nextEliteAt+=duration;spawnClock=Math.max(.15,spawnClock);riftReturn=null;rebuildObstacles();state.worldRevision++;return true;
+    if(!riftReturn)return false;const back=riftReturn,duration=state.t-back.enteredAt;state.rift.arenaActive=false;state.enemies=back.enemies;state.gems=back.gems;state.projectiles=back.projectiles;state.effects=back.effects;state.pois=back.pois;state.obstacles=back.obstacles;state.zones=back.zones;state.traps=back.traps;state.breakables=back.breakables;state.pickups=back.pickups;state.world=back.world;state.biome=back.biome;currentChunkKey=back.currentChunkKey;enemyData.clear();for(const [key,value] of back.enemyMeta)enemyData.set(key,value);shotData.clear();for(const [key,value] of back.shotMeta)shotData.set(key,value);Object.assign(state.player,{x:back.player.x,z:back.player.z,angle:back.player.angle,vx:0,vz:0,terrain:'normal'});nextEliteAt+=duration;nextSiegeAt+=duration;spawnClock=Math.max(.15,spawnClock);riftReturn=null;rebuildObstacles();state.worldRevision++;return true;
   }
   function failRift(){
     const r=state.rift,poiId=r.poiId,tier=r.tier;leaveRiftArena();r.phase='failed';r.bossId=null;r.activation=0;r.reward=null;state.bossIncoming=false;removeRiftPoi(poiId);scheduleRift();state.player.hp=Math.max(1,state.player.maxHp*.35);state.player.invuln=3;effect('rift-failed',state.player.x,state.player.z,4,.9,{color:'#b798d8',tier});say(`Le gardien de palier ${tier} t’a repoussé. Tu reviens sur l’île avec 35 % de vie ; l’expédition continue.`,6);return true;
@@ -299,7 +308,7 @@ export function createGame({seed=12345,heroId='lyra',heroLevel=1,bonuses={},runI
     if(poi&&['offer','activating'].includes(r.phase)){
       if(state.t+1e-9>=r.expiresAt){r.phase='expired';r.activation=0;poi.phase='expired';removeRiftPoi(poi.id);scheduleRift();say('La faille s’est refermée. Ton exploration continue.',3.5);}
       else{
-        const inside=hypot(state.player.x-poi.x,state.player.z-poi.z)<PACING.riftRadius;
+        const inside=cooperative?party().some(p=>hypot(p.x-poi.x,p.z-poi.z)<PACING.riftRadius):hypot(state.player.x-poi.x,state.player.z-poi.z)<PACING.riftRadius;
         r.activation=inside?Math.min(1,r.activation+STEP/PACING.riftActivation):0;r.phase=inside?'activating':'offer';poi.phase=r.phase;poi.activation=r.activation;poi.progress=r.activation;
         if(r.activation>=1-1e-9){r.activation=poi.activation=1;r.phase=poi.phase='incoming';poi.active=true;poi.pendingGuardians=poi.guardiansRemaining=1;poi.progress=0;effect('rift-start',poi.x,poi.z,5,1,{color:'#ffb5df',tier:r.tier,poiId:poi.id});enterRiftArena();}
       }
@@ -312,16 +321,16 @@ export function createGame({seed=12345,heroId='lyra',heroLevel=1,bonuses={},runI
     state.bossIncoming=r.phase==='incoming';state.nextBossAt=state.nextRiftAt;
   }
   function completeRift(boss){
-    const r=state.rift;if(r.phase!=='active'||r.bossId!==boss.id||r.reward)return false;
+    if(cooperative?.completeBoss)return cooperative.completeBoss(boss);const r=state.rift;if(r.phase!=='active'||r.bossId!==boss.id||r.reward)return false;
     const reward={...RIFT_RELICS[(r.tier-1)%RIFT_RELICS.length],tier:r.tier};leaveRiftArena();r.phase='won';r.reward=reward;r.completedAt=state.t;state.riftsCleared++;state.relics.push({...reward});state.stats[reward.stat]+=reward.value;state.chestsOpened++;state.bossIncoming=false;scheduleRift();
     const poi=state.pois.find(p=>p.id===r.poiId);if(poi){poi.phase='won';poi.active=false;poi.completed=true;poi.completedAt=state.t;poi.progress=1;poi.guardiansRemaining=poi.pendingGuardians=0;}
     queueUpgrade({kind:'rift',title:`Faille vaincue · palier ${r.tier}`,tier:r.tier,minimumRarity:'rare',reward:{...reward}});heal(25);
     effect('rift-victory',state.player.x,state.player.z,7,1.3,{color:'#fff0a4',tier:r.tier,poiId:r.poiId});effect('nova',state.player.x,state.player.z,7,.65,{color:'#fff0a4'});say(`Gardien vaincu ! Retour sur l’île avec ${reward.title}, un pouvoir rare et 25 PV.`,5.5);return true;
   }
-  function enemyShoot(e,data,radial=false){const growth=Math.min(9,Math.max(0,(e.bossTier||1)-1)),n=radial?Math.min(18,8+growth*2):1,speed=radial?7+Math.min(2,growth*.22):10;for(let i=0;i<n;i++){const a=radial?i*TAU/n+state.t*.11:Math.atan2(data.chargeX,data.chargeZ);addShot('projectile',e.x,e.z,Math.sin(a)*speed,Math.cos(a)*speed,.25,{life:radial?3:2,damage:data.damage,pierce:0},{hostile:true,family:'enemy',color:'#ff6e81',angle:a});}}
+  function enemyShoot(e,data,radial=false){const growth=Math.min(9,Math.max(0,(e.bossTier||1)-1)),n=radial?Math.min(18,8+growth*2):state.t>=120?3:1,speed=radial?8+Math.min(2,growth*.22):11.5;for(let i=0;i<n;i++){const a=radial?i*TAU/n+state.t*.11:Math.atan2(data.chargeX,data.chargeZ)+(i-(n-1)/2)*.24;addShot('projectile',e.x,e.z,Math.sin(a)*speed,Math.cos(a)*speed,.25,{life:radial?3:2,damage:data.damage,pierce:0},{hostile:true,family:'enemy',color:'#ff6e81',angle:a});}}
   function updateEnemies(){
-    const p=state.player;
     for(const e of state.enemies){
+      const p=cooperative?party().reduce((best,p)=>!best||distance2(e,p)<distance2(e,best)?p:best,null)||state.player:state.player;
       if(e.hp<=0)continue;const data=metadata(e);e.hitFlash=Math.max(0,finite(e.hitFlash)-STEP);
       if(data.poison>0){data.poison=Math.max(0,data.poison-STEP);hurtEnemy(e,data.poisonPower*STEP,{proc:false,critical:false,silent:true});if(e.hp<=0)continue;}
       data.slow=Math.max(0,data.slow-STEP);e.slowed=data.slow>0;
@@ -334,7 +343,7 @@ export function createGame({seed=12345,heroId='lyra',heroLevel=1,bonuses={},runI
       const ready=data.chargeTime<=0&&e.telegraph<=0&&data.recover<=0,bossGrowth=Math.min(9,Math.max(0,(e.bossTier||1)-1));
       if(e.type==='boss'&&data.shootCD<=0&&d<17&&ready){e.telegraph=.95;e.telegraphDuration=.95;data.action='radial';data.shootCD=6.6-Math.min(2,bossGrowth*.25);data.chargeX=dx/d;data.chargeZ=dz/d;}
       else if((e.type==='brute'||e.type==='boss')&&data.chargeCD<=0&&d>3&&d<15&&ready){e.telegraph=e.type==='boss'?1:.78;e.telegraphDuration=e.telegraph;data.action='charge';data.chargeX=dx/d;data.chargeZ=dz/d;e.angle=Math.atan2(data.chargeX,data.chargeZ);data.chargeCD=e.type==='boss'?5-Math.min(1.4,bossGrowth*.18):6.1;}
-      else if(e.type==='spitter'&&data.shootCD<=0&&d<15&&ready){e.telegraph=.6;e.telegraphDuration=.6;data.action='shoot';data.chargeX=dx/d;data.chargeZ=dz/d;e.angle=Math.atan2(data.chargeX,data.chargeZ);data.shootCD=2.8;}
+      else if(e.type==='spitter'&&data.shootCD<=0&&d<15&&ready){e.telegraph=.75;e.telegraphDuration=.75;e.shotCount=state.t>=120?3:1;data.action='shoot';data.chargeX=dx/d;data.chargeZ=dz/d;e.angle=Math.atan2(data.chargeX,data.chargeZ);data.shootCD=2.8;}
       e.attackKind=data.action;e.attackAngle=Math.atan2(data.chargeX,data.chargeZ);
       if(e.telegraph>0){
         e.action='windup';e.telegraph=Math.max(0,e.telegraph-STEP);speed=0;
@@ -369,11 +378,12 @@ export function createGame({seed=12345,heroId='lyra',heroLevel=1,bonuses={},runI
     const cell=3.4,bins=new Map();for(let i=0;i<state.enemies.length;i++){const e=state.enemies[i];if(e.hp<=0)continue;const key=`${Math.floor(e.x/cell)},${Math.floor(e.z/cell)}`;if(!bins.has(key))bins.set(key,[]);bins.get(key).push(i);}
     for(let i=0;i<state.enemies.length;i++){const a=state.enemies[i];if(a.hp<=0)continue;const cx=Math.floor(a.x/cell),cz=Math.floor(a.z/cell);for(let ox=-1;ox<=1;ox++)for(let oz=-1;oz<=1;oz++)for(const j of bins.get(`${cx+ox},${cz+oz}`)||[]){if(j<=i)continue;const b=state.enemies[j],dx=b.x-a.x,dz=b.z-a.z,min=(a.radius+b.radius)*.92,d=hypot(dx,dz);if(d>=min)continue;const nx=d>1e-5?dx/d:1,nz=d>1e-5?dz/d:0,push=Math.min(.12,(min-d)*.35),share=b.radius*b.radius/(a.radius*a.radius+b.radius*b.radius);a.x-=nx*push*share;a.z-=nz*push*share;b.x+=nx*push*(1-share);b.z+=nz*push*(1-share);}resolveCircle(a);}
   }
-  function updateProjectiles(){
+  function updateProjectiles(filter='all'){
     if(family==='orbit')positionOrbits();const alive=[];
     for(const shot of state.projectiles){
+      if(filter==='hostile'&&!shot.hostile||filter==='friendly'&&shot.hostile){alive.push(shot);continue;}
       const data=shotData.get(shot.id);if(!data)continue;data.age+=STEP;data.life-=STEP;
-      if(shot.type==='orbit'){for(const e of targetsNear(shot.x,shot.z,shot.radius+1)){if(e.hp<=0)continue;const info=e.breakable?e:metadata(e);if(state.t>=finite(info.orbitNextHit)&&distance2(e,shot)<(e.radius+shot.radius)**2){info.orbitNextHit=state.t+profile.cooldown/state.stats.cadence;hurtEnemy(e,profile.damage*state.stats.damage,{knock:1.2,from:shot});state.attackCount++;}}alive.push(shot);continue;}
+      if(shot.type==='orbit'){for(const e of targetsNear(shot.x,shot.z,shot.radius+1)){if(e.hp<=0)continue;const info=e.breakable?e:metadata(e);const hitKey=cooperative?'orbitNextHit:'+cooperative.actorId:'orbitNextHit';if(state.t>=finite(info[hitKey])&&distance2(e,shot)<(e.radius+shot.radius)**2){info[hitKey]=state.t+profile.cooldown/state.stats.cadence;hurtEnemy(e,profile.damage*state.stats.damage,{knock:1.2,from:shot});state.attackCount++;}}alive.push(shot);continue;}
       if(shot.type==='wave'){if(data.delay>0){data.delay-=STEP;alive.push(shot);continue;}shot.radius+=data.expansion*STEP;for(const e of targetsNear(shot.x,shot.z,shot.radius+1))if(e.hp>0&&!data.hit.has(e.id)&&Math.abs(hypot(e.x-shot.x,e.z-shot.z)-shot.radius)<=e.radius+.48*state.stats.area){data.hit.add(e.id);hurtEnemy(e,data.damage,{from:shot,knock:4});}if(shot.radius<data.maxRadius&&data.life>0)alive.push(shot);else shotData.delete(shot.id);continue;}
       if(shot.type==='mine'){data.arm=Math.max(0,data.arm-STEP);const trigger=1.25*state.stats.area,target=data.arm<=0&&targetsNear(shot.x,shot.z,trigger+1).some(e=>e.hp>0&&distance2(e,shot)<=(trigger+e.radius)**2);if(target){explosion(shot.x,shot.z,data.explosionRadius,data.damage);shotData.delete(shot.id);}else if(data.life>0)alive.push(shot);else shotData.delete(shot.id);continue;}
       if(shot.type==='vortex'){data.tick-=STEP;shot.angle+=STEP*4*state.stats.cadence;for(const e of targetsNear(shot.x,shot.z,shot.radius+1)){if(e.hp<=0||distance2(e,shot)>(shot.radius+e.radius)**2)continue;const info=e.breakable?null:metadata(e),dx=shot.x-e.x,dz=shot.z-e.z,d=hypot(dx,dz)||1;if(info&&d>.45){const force=e.type==='boss'?.4:3;info.knockX+=dx/d*force*STEP*12;info.knockZ+=dz/d*force*STEP*12;}if(data.tick<=0)hurtEnemy(e,data.damage,{from:shot,knock:0});}if(data.tick<=0)data.tick+=data.tickInterval;if(data.life>0)alive.push(shot);else shotData.delete(shot.id);continue;}
@@ -382,7 +392,7 @@ export function createGame({seed=12345,heroId='lyra',heroLevel=1,bonuses={},runI
       const oldX=shot.x,oldZ=shot.z;shot.x+=shot.vx*STEP;shot.z+=shot.vz*STEP;shot.angle=Math.atan2(shot.vx,shot.vz);
       if(data.lob){shot.y=.7+Math.sin(clamp(data.age/data.flight,0,1)*Math.PI)*3.5;if(data.life<=0){explosion(shot.x,shot.z,data.explosionRadius,data.damage);shotData.delete(shot.id);}else alive.push(shot);continue;}
       let remove=data.life<=0||hypot(shot.x,shot.z)>ARENA+2;
-      if(shot.hostile){if(segmentDistanceSq(state.player.x,state.player.z,oldX,oldZ,shot.x,shot.z)<(state.player.radius+shot.radius)**2){hurtPlayer(data.damage,shot.x,shot.z);remove=true;}}
+      if(shot.hostile){if(cooperative){const victim=party().filter(p=>segmentDistanceSq(p.x,p.z,oldX,oldZ,shot.x,shot.z)<(p.radius+shot.radius)**2).sort((a,b)=>distance2(a,{x:oldX,z:oldZ})-distance2(b,{x:oldX,z:oldZ}))[0];if(victim){cooperative.hurtPlayer(victim.playerId,data.damage,shot.x,shot.z);remove=true;}}else if(segmentDistanceSq(state.player.x,state.player.z,oldX,oldZ,shot.x,shot.z)<(state.player.radius+shot.radius)**2){hurtPlayer(data.damage,shot.x,shot.z);remove=true;}}
       else{const hits=[];for(const e of targetsNear(shot.x,shot.z,2))if(e.hp>0&&!data.hit.has(e.id)&&segmentDistanceSq(e.x,e.z,oldX,oldZ,shot.x,shot.z)<=(e.radius+shot.radius)**2)hits.push(e);hits.sort((a,b)=>(a.x-oldX)**2+(a.z-oldZ)**2-((b.x-oldX)**2+(b.z-oldZ)**2));for(const e of hits){data.hit.add(e.id);if(data.explosionRadius){explosion(shot.x,shot.z,data.explosionRadius,data.damage);remove=true;break;}hurtEnemy(e,data.damage,{from:shot,knock:.8,poison:data.poison||0,slow:data.slow||0});if(data.pierce<=0){remove=true;break;}data.pierce--;}}
       if(remove)shotData.delete(shot.id);else alive.push(shot);
     }
@@ -412,9 +422,9 @@ export function createGame({seed=12345,heroId='lyra',heroLevel=1,bonuses={},runI
   function updatePOIs(){
     const p=state.player;
     for(const poi of state.pois){
-      const d=hypot(p.x-poi.x,p.z-poi.z);if(!poi.discovered&&d<15){poi.discovered=true;rememberPoi(poi);state.discovered++;if(state.t>1.5)say(`Découverte · ${poi.name}`);}if(poi.completed)continue;
+      const nearest=cooperative?party().reduce((best,q)=>!best||distance2(q,poi)<distance2(best,poi)?q:best,null)||p:p,d=hypot(nearest.x-poi.x,nearest.z-poi.z);if(!poi.discovered&&d<15){poi.discovered=true;rememberPoi(poi);state.discovered++;if(state.t>1.5)say(`Découverte · ${poi.name}`);}if(poi.completed)continue;
       if(poi.type==='chest'&&d<1.7){poi.completed=true;poi.completedAt=state.t;poi.progress=1;state.chestsOpened++;queueUpgrade({kind:'chest',title:poi.name,poiId:poi.id});heal(12);effect('chest',poi.x,poi.z,2.2,.65,{color:'#ffdf79'});say('Trésor ouvert : un pouvoir, 12 PV et des gains pour le camp !');}
-      else if(poi.type==='well'&&d<1.8&&p.hp<p.maxHp-.1){poi.completed=true;poi.completedAt=state.t;poi.progress=1;heal(p.maxHp*.4);say('Source de vie : 40 % de tes PV maximum restaurés.');}
+      else if(poi.type==='well'&&d<1.8&&nearest.hp<nearest.maxHp-.1){poi.completed=true;poi.completedAt=state.t;poi.progress=1;if(cooperative&&nearest!==p)nearest.hp=Math.min(nearest.maxHp,nearest.hp+nearest.maxHp*.4);else heal(p.maxHp*.4);say('Source de vie : 40 % des PV maximum restaurés.');}
       else if(poi.type==='shrine'){
         if(d<3.3){poi.progress=Math.min(1,poi.progress+STEP/6);if(!poi.active){poi.active=true;for(let i=0;i<3;i++)spawnEnemy(i===2?'runner':'slime');say('Sanctuaire : reste 6 secondes dans le cercle. Tu peux esquiver à l’intérieur.',5);}}else if(poi.progress>0)poi.progress=Math.max(0,poi.progress-STEP/18);
         if(poi.progress>=1){poi.completed=true;poi.completedAt=state.t;queueUpgrade({kind:'shrine',title:'Sanctuaire éveillé',poiId:poi.id});heal(10);effect('nova',poi.x,poi.z,5,.65,{color:'#a6e5ff'});say('Sanctuaire éveillé : un pouvoir et 10 PV !');}
@@ -442,26 +452,26 @@ export function createGame({seed=12345,heroId='lyra',heroLevel=1,bonuses={},runI
     for(const trap of state.traps){
       const duration=trap.phase==='warning'?trap.warningDuration:trap.phase==='active'?trap.activeDuration:trap.phase==='cooldown'?trap.cooldownDuration:0;
       if(trap.phase==='idle'){
-        const near=distance2(trap,state.player)<(trap.radius+1.2)**2||state.enemies.some(e=>e.hp>0&&distance2(e,trap)<(trap.radius+e.radius*.6)**2);
+        const near=party().some(p=>distance2(trap,p)<(trap.radius+1.2)**2)||state.enemies.some(e=>e.hp>0&&distance2(e,trap)<(trap.radius+e.radius*.6)**2);
         if(near){trap.phase='warning';trap.phaseTime=0;trap.phaseDuration=trap.warningDuration;trap.phaseProgress=0;trap.hitIds=[];state.trapsTriggered++;effect('trap-warning',trap.x,trap.z,trap.radius,trap.warningDuration,{trapId:trap.id,color:'#ffbf6b'});}continue;
       }
       trap.phaseTime+=STEP;trap.phaseDuration=duration;trap.phaseProgress=clamp(trap.phaseTime/Math.max(.001,duration),0,1);
       if(trap.phaseTime+1e-9>=duration){trap.phase=trap.phase==='warning'?'active':trap.phase==='active'?'cooldown':'idle';trap.phaseTime=0;trap.phaseProgress=0;trap.phaseDuration=trap.phase==='active'?trap.activeDuration:trap.phase==='cooldown'?trap.cooldownDuration:0;}
       if(trap.phase!=='active')continue;
       for(const enemy of state.enemies)if(enemy.hp>0&&!trap.hitIds.includes(enemy.id)&&distance2(enemy,trap)<(trap.radius+enemy.radius*.6)**2){trap.hitIds.push(enemy.id);const damage=Math.min(enemy.hp,35);hurtEnemy(enemy,35,{critical:false,proc:false,knock:0,from:trap});effect('trap-hit',enemy.x,enemy.z,enemy.radius,.32,{trapId:trap.id,targetId:enemy.id,amount:damage,color:'#ffe0a5'});}
-      if(!trap.hitIds.includes('player')&&distance2(state.player,trap)<(trap.radius+state.player.radius*.5)**2){const damage=hurtPlayer(12,trap.x,trap.z);if(damage){trap.hitIds.push('player');effect('trap-hit',state.player.x,state.player.z,1,.35,{trapId:trap.id,targetId:'player',amount:damage,color:'#ff9e83'});}}
+      if(!cooperative&&!trap.hitIds.includes('player')&&distance2(state.player,trap)<(trap.radius+state.player.radius*.5)**2){const damage=hurtPlayer(12,trap.x,trap.z);if(damage){trap.hitIds.push('player');effect('trap-hit',state.player.x,state.player.z,1,.35,{trapId:trap.id,targetId:'player',amount:damage,color:'#ff9e83'});}}
       if(state.phase!=='playing')return;
     }
   }
   function collectPickups(){const p=state.player,kept=[];for(const pickup of state.pickups){if(pickup.collected)continue;const d=hypot(p.x-pickup.x,p.z-pickup.z);if(p.hp<p.maxHp-.1){if(d<1.2){const before=p.hp;heal(pickup.value);pickup.collected=true;const amount=p.hp-before;state.healingCollected+=amount;effect('pickup-heal',pickup.x,pickup.z,1,.55,{amount,color:'#a8f4b2'});continue;}if(d<3){const move=Math.min(d,7*STEP);pickup.x+=(p.x-pickup.x)/d*move;pickup.z+=(p.z-pickup.z)/d*move;}}kept.push(pickup);}state.pickups=kept;}
   function collectXP(){
-    const p=state.player,kept=[];for(const gem of state.gems){if(gem.collected||!Number.isFinite(gem.x)||!Number.isFinite(gem.z)||!Number.isFinite(gem.value)||gem.value<=0)continue;const dx=p.x-gem.x,dz=p.z-gem.z,d=hypot(dx,dz);if(d<p.radius+.4){const gained=gem.value*state.stats.xpGain;state.xp+=gained;state.collected+=gained;gem.collected=true;}else{if(d<state.stats.pickupRadius){const move=Math.min(d,(11+(state.stats.pickupRadius-d)*2.5)*STEP);gem.x+=dx/d*move;gem.z+=dz/d*move;}kept.push(gem);}}state.gems=kept;while(state.xp>=state.nextXP){state.xp-=state.nextXP;state.level++;const growth=state.level-2;state.nextXP=88+growth*34+growth*growth*6;queueUpgrade({kind:'level',title:`Niveau ${state.level}`,level:state.level});}
+    const p=state.player,kept=[];for(const gem of state.gems){if(gem.collected||!Number.isFinite(gem.x)||!Number.isFinite(gem.z)||!Number.isFinite(gem.value)||gem.value<=0)continue;const dx=p.x-gem.x,dz=p.z-gem.z,d=hypot(dx,dz);if(d<p.radius+.4){const gained=gem.value*state.stats.xpGain;if(cooperative?.onXP)cooperative.onXP(gem.value);else{state.xp+=gained;state.collected+=gained;}gem.collected=true;}else{if(d<state.stats.pickupRadius){const move=Math.min(d,(11+(state.stats.pickupRadius-d)*2.5)*STEP);gem.x+=dx/d*move;gem.z+=dz/d*move;}kept.push(gem);}}state.gems=kept;while(state.xp>=state.nextXP){state.xp-=state.nextXP;state.level++;const growth=state.level-2;state.nextXP=88+growth*34+growth*growth*6;queueUpgrade({kind:'level',title:`Niveau ${state.level}`,level:state.level});}
   }
   function tick(input){
     if(state.player.hp<=0){if(state.rift.arenaActive)failRift();else finish('death');return;}ticks++;state.t=ticks*STEP;streamWorld();if(indexedObstacles!==state.obstacles||indexedZones!==state.zones||indexedProps!==state.breakables)rebuildObstacles();updatePlayer(input);if(streamWorld())resolveCircle(state.player);updateSpawns();updateTraps();if(state.phase!=='playing')return;updateEnemies();updateWeapons();if(state.phase==='playing')updateProjectiles();if(state.player.invuln<=0&&state.phase==='playing')for(const e of state.enemies)if(e.hp>0&&distance2(e,state.player)<(e.radius+state.player.radius)**2){hurtPlayer(metadata(e).damage,e.x,e.z);break;}
     state.enemies=state.enemies.filter(e=>{if(e.hp>0&&!e.despawned&&Number.isFinite(e.x)&&Number.isFinite(e.z))return true;enemyData.delete(e.id);return false;});if(propsDirty){state.breakables=state.breakables.filter(p=>!p.broken);propsDirty=false;rebuildObstacles();}for(const prop of state.breakables)prop.hitFlash=Math.max(0,prop.hitFlash-STEP);if(state.phase==='playing'){collectXP();collectPickups();updatePOIs();openUpgrade();}for(const fx of state.effects)fx.life-=STEP;state.effects=state.effects.filter(fx=>fx.life>0);state.messageTime=Math.max(0,state.messageTime-STEP);
   }
-  function start(){resetInternals();Object.assign(state,makeState());rebuildObstacles();state.phase='playing';if(family==='orbit')refreshOrbits();for(let i=0;i<PACING.openingSlimes;i++)spawnEnemy('slime',{initial:true,initialIndex:i});updateInteraction();return state;}
+  function start(){resetInternals();Object.assign(state,makeState());rebuildObstacles();state.phase='playing';if(family==='orbit')refreshOrbits();for(let i=0;i<openingCount();i++)spawnEnemy('slime',{initial:true,initialIndex:i});updateInteraction();return state;}
   function step(dt=STEP,input={}){if(state.phase!=='playing'||!Number.isFinite(dt)||dt<=0)return state;pendingDash||=Boolean(input?.dash);accumulator=Math.min(accumulator+Math.min(dt,.1),.1);let steps=0;while(accumulator+1e-10>=STEP&&state.phase==='playing'&&steps<6){accumulator=Math.max(0,accumulator-STEP);tick(input);steps++;}return state;}
   function pause(){if(state.phase!=='playing'&&state.phase!=='upgrade')return false;pausedFrom=state.phase;state.phase='paused';pendingDash=false;return true;}
   function resume(){if(state.phase!=='paused')return false;state.phase=pausedFrom;return true;}
@@ -472,5 +482,36 @@ export function createGame({seed=12345,heroId='lyra',heroLevel=1,bonuses={},runI
     world:{...state.world,activeChunks:state.world.activeChunks.map(c=>({...c})),visitedChunks:state.world.visitedChunks.map(c=>({...c}))},worldRevision:state.worldRevision,propsBroken:state.propsBroken,trapsTriggered:state.trapsTriggered,healingCollected:round(state.healingCollected),breakables:state.breakables.length,pickups:state.pickups.length,enemies:state.enemies.length,gems:state.gems.length,projectiles:state.projectiles.length,effects:state.effects.length,bossHP:state.enemies.filter(e=>e.type==='boss').reduce((sum,e)=>sum+e.hp,0),discovered:state.discovered,chestsOpened:state.chestsOpened,discoveriesTotal:state.pois.length,completedPOIs:state.pois.filter(p=>p.completed).length,outcome:state.outcome,
     offers:state.offers.map(o=>o.id),upgrades:state.upgrades.map(u=>({...u})),damageDealt:round(state.damageDealt),attackCount:state.attackCount,criticalHits:state.criticalHits,evolved:state.evolved,pendingUpgrades:pendingUpgrades.length,message:state.message
   };}
-  return{state,start,step,chooseUpgrade,reroll,pause,resume,extract,snapshot,setSpawnBounds};
+  const coop=cooperative?{
+    get worldData(){return worldData;},get enemyData(){return enemyData;},addGem,completeRift,failRift,hurtPlayer,
+    syncWorld(root){
+      worldData=root.coop.worldData;cooperative.enemyData=root.coop.enemyData;
+      for(const key of ['enemies','gems','obstacles','zones','traps','breakables','pickups','pois','mapPOIs','world','rift','arenaRadius','worldRevision','nextRiftAt','nextBossAt'])state[key]=root.state[key];
+      state.t=root.state.t;state.biome=state.rift.arenaActive?'rift':biomeAt(state.player.x,state.player.z);rebuildObstacles();
+    },
+    worldTick(time){
+      state.t=time;ticks=Math.round(time/STEP);streamWorld();rebuildObstacles();updateSpawns();updateTraps();updateEnemies();updateProjectiles('hostile');
+      state.enemies=state.enemies.filter(e=>{if(e.hp>0&&!e.despawned)return true;enemyData.delete(e.id);return false;});
+      for(const prop of state.breakables)prop.hitFlash=Math.max(0,(prop.hitFlash||0)-STEP);
+    },
+    actorTick(input,time){
+      state.t=time;state.phase='playing';pendingDash||=Boolean(input?.dash);
+      if(state.player.hp>0){updatePlayer(input||{});updateWeapons();}
+      else{state.projectiles=state.projectiles.filter(p=>{if(p.type==='orbit'){shotData.delete(p.id);return false;}return true;});}
+      updateProjectiles('friendly');
+      if(state.player.hp>0){
+        if(state.player.invuln<=0)for(const e of state.enemies)if(e.hp>0&&distance2(e,state.player)<(e.radius+state.player.radius)**2){hurtPlayer(metadata(e).damage,e.x,e.z);break;}
+        for(const trap of state.traps)if(trap.phase==='active'&&!trap.hitIds.includes('actor:'+cooperative.actorId)&&distance2(state.player,trap)<(trap.radius+state.player.radius*.5)**2){if(hurtPlayer(12,trap.x,trap.z))trap.hitIds.push('actor:'+cooperative.actorId);}
+        collectXP();collectPickups();
+      }
+      state.breakables=state.breakables.filter(p=>!p.broken);if(propsDirty){rebuildObstacles();propsDirty=false;}
+      for(const fx of state.effects)fx.life-=STEP;state.effects=state.effects.filter(fx=>fx.life>0);state.messageTime=Math.max(0,state.messageTime-STEP);updateInteraction();
+    },
+    finishWorld(){updatePOIs();},
+    openOffers(){while(state.xp>=state.nextXP){state.xp-=state.nextXP;state.level++;const growth=state.level-2;state.nextXP=88+growth*34+growth*growth*6;queueUpgrade({kind:'level',title:`Niveau ${state.level}`,level:state.level});}openUpgrade();},
+    grant(source){pendingUpgrades.push({minimumRarity:'common',...source});},
+    resetProjectiles(){state.projectiles=[];shotData.clear();if(state.player.hp>0&&family==='orbit')refreshOrbits();},
+    refreshInteraction:updateInteraction,finish
+  }:null;
+  return{state,start,step,chooseUpgrade,reroll,pause,resume,extract,snapshot,setSpawnBounds,...(coop?{coop}:{})};
 }

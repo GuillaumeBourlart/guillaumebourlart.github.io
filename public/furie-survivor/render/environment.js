@@ -1,25 +1,29 @@
 import * as THREE from '../vendor/three.module.js';
 import { GEO, TAU, material, flat, mesh, disc, ring, group, contactShadow, disposeModel } from './models.js';
-import { paintedMaterial, fringeMaterial, pathMaterial, plazaMaterial } from './textures.js';
+import { paintedMaterial, pathMaterial, plazaMaterial } from './textures.js';
+import {terrainMaterial} from './terrain-surface.js';
 import { makeRift,updateRift } from './rifts.js';
 import { createTerrainFeatures } from './terrain-features.js';
+import { createWorldArt } from './world-art.js';
+import { buildTree, dressCamp } from './botany.js';
 import { biomeAt,WORLD_RADIUS } from '../game/world.js';
 export { biomeAt };
 
 const CHUNK=12;
 const BIOMES={
-  forest:{ground:'#486f65',patch:'#8ba58a',dark:'#344f50',stone:'#a7b0a4',leaf:'#608d78',glow:'#d4c8a5'},
+  forest:{ground:'#365e54',patch:'#94ad7d',dark:'#3e6456',stone:'#a7b0a4',leaf:'#639477',glow:'#f2d9a5'},
   crystal:{ground:'#626e86',patch:'#98a8bb',dark:'#47526f',stone:'#aebecd',leaf:'#a49bc4',glow:'#b6dce7'},
   desert:{ground:'#b3987c',patch:'#ccb595',dark:'#78635d',stone:'#d9c3a5',leaf:'#769b8e',glow:'#e7d2aa'},
   swamp:{ground:'#3e6267',patch:'#78958b',dark:'#2f4659',stone:'#8da3a3',leaf:'#648f86',glow:'#c9b7da'},
 };
 const seeded=seed=>{let n=seed>>>0;return()=>{n+=0x6d2b79f5;let t=Math.imul(n^n>>>15,1|n);t^=t+Math.imul(t^t>>>7,61|t);return((t^t>>>14)>>>0)/4294967296;};};
 const inside=(x,z,b,margin=0)=>!b||(x>=b.minX-margin&&x<=b.maxX+margin&&z>=b.minZ-margin&&z<=b.maxZ+margin);
-function sapling(parent,x,z,pal,size=1){
+function sapling(parent,x,z,pal,size=1,full=true){
   const g=group(parent,x,0,z);g.scale.setScalar(size);
   contactShadow(g,.15,.08,1.2,.32);
-  mesh(GEO.cylinder,paintedMaterial('wood','#705844'),0,.8,0,.12,1.6,.12,g);
-  const canopy=group(g,0,1.3,0);mesh(GEO.round,material(pal.leaf),0,.4,0,.84,.8,.76,canopy);mesh(GEO.ball,material(pal.patch),-.22,.8,.02,.53,.48,.5,canopy);g.userData.canopy=canopy;return g;
+  if(full)g.userData.canopy=buildTree(g,pal,1,{full:true});
+  else{mesh(GEO.cylinder,paintedMaterial('wood','#705844'),0,.8,0,.12,1.6,.12,g);const canopy=group(g,0,1.3,0);mesh(GEO.round,material(pal.leaf),0,.4,0,.84,.8,.76,canopy);mesh(GEO.ball,material(pal.patch),-.22,.8,.02,.53,.48,.5,canopy);g.userData.canopy=canopy;}
+  return g;
 }
 function turf(parent,x,z,color,size,phase){
   const g=group(parent,x,.03,z);for(let i=0;i<3;i++){const blade=mesh(GEO.cone,material(color),Math.sin(i*2)*.09,.16,Math.cos(i*2)*.09,.045,.34,.025,g);blade.rotation.z=(i-1)*.3;}
@@ -40,17 +44,15 @@ function floorGeometry(x,z,coastRadius){
   const vertices=[],uv=[],indices=[];for(const[px,pz]of polygon){vertices.push(px/12,-pz/12,0);uv.push(px/12+.5,-pz/12+.5);}for(let i=1;i<polygon.length-1;i++)indices.push(0,i+1,i);
   const geometry=new THREE.BufferGeometry();geometry.setAttribute('position',new THREE.Float32BufferAttribute(vertices,3));geometry.setAttribute('uv',new THREE.Float32BufferAttribute(uv,2));geometry.setIndex(indices);geometry.computeVertexNormals();return geometry;
 }
-function makeChunk(cx,cz,coastRadius){
+function makeChunk(cx,cz,coastRadius,software=false){
   const g=group(),x=cx*CHUNK,z=cz*CHUNK,biome=biomeAt(x,z),pal=BIOMES[biome],rand=seeded((cx*73856093)^(cz*19349663)^6157);
   g.position.set(x,0,z);g.userData.wind=[];g.userData.motes=[];
-  const geometry=floorGeometry(x,z,coastRadius),floor=mesh(geometry,paintedMaterial(biome,pal.ground,{flat:true}),0,-.018,0,CHUNK+.015,CHUNK+.015,1,g);floor.name='terrain:'+cx+':'+cz;floor.rotation.x=-Math.PI/2;floor.renderOrder=-140;floor.userData.uniqueGeometry=geometry!==GEO.plane;
-  if(biomeAt(x+CHUNK,z)!==biome){const edge=mesh(GEO.plane,fringeMaterial(biome,pal.ground),6,.004,0,10,CHUNK+.04,1,g);edge.rotation.x=-Math.PI/2;edge.renderOrder=-100;}
-  if(biomeAt(x,z+CHUNK)!==biome){const edge=mesh(GEO.plane,fringeMaterial(biome,pal.ground),0,.006,6,10,CHUNK+.04,1,g);edge.rotation.set(-Math.PI/2,0,-Math.PI/2);edge.renderOrder=-95;}
+  const geometry=floorGeometry(x,z,coastRadius),floor=mesh(geometry,terrainMaterial(x,z,{software}),0,-.018,0,CHUNK,CHUNK,1,g);floor.name='terrain:'+cx+':'+cz;floor.rotation.x=-Math.PI/2;floor.renderOrder=-140;floor.userData.uniqueGeometry=geometry!==GEO.plane;
 
   // A repeating sparse road network gives long expeditions a useful landmark.
   const vertical=cx%8===0,horizontal=cz%8===0;
   if(vertical||horizontal){const path=mesh(geometry,pathMaterial(biome,vertical?(horizontal?'cross':'vertical'):'horizontal'),0,-.004,0,CHUNK,CHUNK,1,g);path.rotation.x=-Math.PI/2;path.renderOrder=-75;}
-  for(let i=0;i<5;i++){
+  for(let i=0;i<(software?5:2);i++){
     const px=(rand()-.5)*11,pz=(rand()-.5)*11,wx=x+px,wz=z+pz;
     if(Math.hypot(wx,wz)<5.15||Math.hypot(wx,wz)>coastRadius-.8||(vertical&&Math.abs(px)<1.9)||(horizontal&&Math.abs(pz)<1.9))continue;
     if(biome==='crystal'){
@@ -69,16 +71,18 @@ function makeChunk(cx,cz,coastRadius){
     }
   }
   // Sparse moving motes are distinct in each region, without covering combat.
-  for(let i=0;i<1;i++){
+  for(let i=0;i<(software?1:0);i++){
     const m=mesh(biome==='forest'?GEO.plane:GEO.gem,material(biome==='desert'?'#ead1a0':pal.glow,.1),(rand()-.5)*11,.8+rand()*1.4,(rand()-.5)*11,.035,.06,.035,g);
     m.userData={x:m.position.x,z:m.position.z,y:m.position.y,phase:rand()*TAU};g.userData.motes.push(m);
   }
   return g;
 }
-function makeObstacle(o,index){
+function makeObstacle(o,index,full=true){
   const biome=o.biome||biomeAt(o.x,o.z),pal=BIOMES[biome],g=group(),r=o.radius||1.3,type=o.type||(biome==='crystal'?'crystal':index%3?'tree':'pillar');g.position.set(o.x,0,o.z);
   contactShadow(g,.3,.2,r*1.7,.42,.8);
-  if(type==='tree'){
+  if(type==='tree'&&full){
+    g.userData.canopy=buildTree(g,pal,r,{full,biome,seed:index});
+  }else if(type==='tree'){
     mesh(GEO.cylinder,paintedMaterial('wood','#6c4f37'),0,r*.65,0,r*.2,r*1.3,r*.2,g);
     // Roots and asymmetrical foliage give trees weight on the ground.
     for(let i=0;i<3;i++){const a=i*TAU/3;const root=mesh(GEO.cone,paintedMaterial('wood','#6c4f37'),Math.sin(a)*r*.25,r*.16,Math.cos(a)*r*.25,r*.13,r*.7,r*.13,g);root.rotation.z=Math.sin(a)*.65;root.rotation.x=Math.cos(a)*.65;}
@@ -136,7 +140,7 @@ function makePoi(poi){
 }
 export function createEnvironment(scene,{software=false,reducedMotion=false}={}){
   const layer=group(scene),chunks=new Map(),obstacles=new Map(),pois=new Map();let obstacleRun='',lastCenter='',poiRun='',worldRadius=0;
-  const features=createTerrainFeatures(layer);
+  const features=createTerrainFeatures(layer),worldArt=createWorldArt(layer,{software});worldArt.setReducedMotion(reducedMotion);
   const water=mesh(GEO.plane,paintedMaterial('water','#344e70',{flat:true}),0,-.67,0,1,1,1,layer);water.rotation.x=-Math.PI/2;water.renderOrder=-2500;
   const islandGeometry=new THREE.CylinderGeometry(1,1,1,256),island=mesh(islandGeometry,paintedMaterial('stone','#4b6170'),0,-1.3,0,1,2.2,1,layer);island.userData.uniqueGeometry=true;island.renderOrder=-2000;
   const shoreline=[];for(let i=0;i<3;i++){const r=mesh(new THREE.RingGeometry(1,1.1,256),flat('#b1c9cc',.18-i*.035),0,-.57+i*.015,0,1,1,1,layer);r.rotation.x=-Math.PI/2;r.userData.uniqueGeometry=true;shoreline.push(r);r.renderOrder=-1800;}
@@ -152,7 +156,8 @@ export function createEnvironment(scene,{software=false,reducedMotion=false}={})
   const plaza=disc(plazaMaterial(),0,.015,0,4.65,home);plaza.renderOrder=-70;
   const plazaRim=mesh(GEO.fineRing,flat('#c5c4b0',.75),0,.032,0,4.61,4.61,4.61,home);plazaRim.rotation.x=-Math.PI/2;plazaRim.renderOrder=-30;
   for(let i=0;i<8;i++){const a=i/8*TAU;mesh(GEO.softBox,paintedMaterial('stone','#adb6af'),Math.sin(a)*4.5,.07,Math.cos(a)*4.5,.45,.13,.35,home).rotation.y=a;}
-  const homeTrees=[sapling(home,5.1,-2.7,BIOMES.forest,1.65),sapling(home,-4.8,-3.7,{...BIOMES.forest,leaf:'#7e8d9d',patch:'#aaa9bf'},1.27)];
+  const homeTrees=[sapling(home,5.1,-2.7,BIOMES.forest,1.65,!software),sapling(home,-4.8,-3.7,{...BIOMES.forest,leaf:'#7e8d9d',patch:'#aaa9bf'},1.27,!software)];
+  dressCamp(home,{software});
   for(const s of[-1,1]){contactShadow(home,s*2.32,-5.2,.95,.36);mesh(GEO.softBox,paintedMaterial('stone','#909fa3'),s*2.32,1.12,-5.2,.62,2.24,.7,home);mesh(GEO.cylinder16,paintedMaterial('stone','#bbb9ad'),s*2.32,.13,-5.2,.49,.26,.49,home);for(let i=0;i<3;i++)mesh(GEO.ball,material(i%2?'#809b84':'#597b70'),s*2.32+.29,2.2-i*.4,-4.79,.2,.2,.08,home);}
   const archGeometry=new THREE.TorusGeometry(1,.15,5,22,Math.PI),arch=mesh(archGeometry,paintedMaterial('stone','#b8b7b4'),0,2.17,-5.2,2.32,1.43,2.2,home);arch.userData.uniqueGeometry=true;
   const archGem=mesh(GEO.gem,material('#cab9e0',.08),0,3.59,-4.95,.2,.31,.14,home);
@@ -160,7 +165,7 @@ export function createEnvironment(scene,{software=false,reducedMotion=false}={})
   const fireflies=[];for(let i=0;i<8;i++){const a=i/8*TAU,r=3+i%3;const f=mesh(GEO.gem,material('#e5d8b6',.14),Math.cos(a)*r,.6,Math.sin(a)*r,.036,.055,.036,home);f.userData.angle=a;fireflies.push(f);}
   function updateChunks(x,z,bounds){
     const cx=Math.round(x/CHUNK),cz=Math.round(z/CHUNK),rx=Math.ceil(bounds?(bounds.maxX-bounds.minX)/2/CHUNK:2)+1,rz=Math.ceil(bounds?(bounds.maxZ-bounds.minZ)/2/CHUNK:2)+1,key=[cx,cz,rx,rz].join(':');if(key===lastCenter)return;lastCenter=key;
-    const wanted=new Set();for(let dx=-rx;dx<=rx;dx++)for(let dz=-rz;dz<=rz;dz++){const tx=cx+dx,tz=cz+dz;if(Math.hypot(tx*CHUNK,tz*CHUNK)>worldRadius+12)continue;const id=tx+':'+tz;wanted.add(id);if(!chunks.has(id)){const g=makeChunk(tx,tz,worldRadius+3.3);chunks.set(id,g);layer.add(g);}}
+    const wanted=new Set();for(let dx=-rx;dx<=rx;dx++)for(let dz=-rz;dz<=rz;dz++){const tx=cx+dx,tz=cz+dz;if(Math.hypot(tx*CHUNK,tz*CHUNK)>worldRadius+12)continue;const id=tx+':'+tz;wanted.add(id);if(!chunks.has(id)){const g=makeChunk(tx,tz,worldRadius+3.3,software);chunks.set(id,g);layer.add(g);}}
     for(const[id,g]of chunks)if(!wanted.has(id)){layer.remove(g);disposeModel(g);chunks.delete(id);}
   }
   function updateObstacles(state,bounds,time){
@@ -169,14 +174,14 @@ export function createEnvironment(scene,{software=false,reducedMotion=false}={})
       const o=list[i];if(!inside(o.x,o.z,bounds,9))continue;
       const id=o.id??`${o.type}:${o.x}:${o.z}`,signature=[o.type,o.radius,o.biome,o.x,o.z].join(':');visible.add(id);
       let g=obstacles.get(id);if(g&&g.userData.signature!==signature){layer.remove(g);disposeModel(g);obstacles.delete(id);g=null;}
-      if(!g){g=makeObstacle(o,i);g.name='obstacle:'+id;g.userData.signature=signature;obstacles.set(id,g);layer.add(g);}
+      if(!g){let stable=0;for(const c of String(id))stable=Math.imul(stable^c.charCodeAt(0),16777619)>>>0;g=makeObstacle(o,stable,!software);g.name='obstacle:'+id;g.userData.signature=signature;obstacles.set(id,g);layer.add(g);}
       g.visible=true;if(g.userData.canopy){g.userData.canopy.rotation.z=Math.sin(time*1.15+o.x)*.018;g.userData.canopy.rotation.x=Math.sin(time*.8+o.z)*.012;}
     }
     for(const[id,g]of obstacles)if(!visible.has(id)){layer.remove(g);disposeModel(g);obstacles.delete(id);}
   }
   function update(state,x,z,time,isMenu,bounds){
     const windTime=reducedMotion?0:time;
-    sizeWorld(state.arenaRadius);updateChunks(x,z,bounds);updateObstacles(state,bounds,windTime);features.update(state,time,bounds,{isMenu,reduced:reducedMotion});home.visible=inside(0,0,bounds,12);
+    sizeWorld(state.arenaRadius);updateChunks(x,z,bounds);updateObstacles(state,bounds,windTime);features.update(state,time,bounds,{isMenu,reduced:reducedMotion});worldArt.update(state,time,bounds||{minX:x-25,maxX:x+25,minZ:z-25,maxZ:z+25},isMenu);home.visible=inside(0,0,bounds,12);
     const coastVisible=Math.hypot(x,z)>worldRadius-90;island.visible=coastVisible;water.visible=coastVisible;boundary.visible=coastVisible;for(const r of shoreline)r.visible=coastVisible;
     archGem.rotation.y=windTime*.18;
     for(const tree of homeTrees)tree.userData.canopy.rotation.z=Math.sin(windTime+tree.position.x)*.025;
@@ -209,5 +214,5 @@ export function createEnvironment(scene,{software=false,reducedMotion=false}={})
     }
     for(const[id,g]of pois)if(!alive.has(id)){layer.remove(g);disposeModel(g);pois.delete(id);}
   }
-  return{update,layer,setReducedMotion(value){reducedMotion=!!value;},dispose(){features.dispose();disposeModel(layer);scene.remove(layer);chunks.clear();obstacles.clear();pois.clear();}};
+  return{update,layer,setReducedMotion(value){reducedMotion=!!value;worldArt.setReducedMotion(value);},dispose(){features.dispose();worldArt.dispose();disposeModel(layer);scene.remove(layer);chunks.clear();obstacles.clear();pois.clear();}};
 }
