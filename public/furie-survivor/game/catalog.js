@@ -1,4 +1,6 @@
-// Original Furie Survivors roster. Collection odds live here; actual rarity and hero stats live in hero-stats.js.
+import {CREATURE_ROSTER} from './monster-roster.js';
+import {SPELLS,DELIVERY_TAGS} from './spell-variants.js';
+// Stable account IDs and attack families are preserved while species replace the old heroes.
 export const RARITIES = Object.freeze({
   common: Object.freeze({id:'common',name:'Commun',label:'Commun',color:'#a9d7bd',weight:42,probability:.42,essence:1,recruitCost:8}),
   uncommon: Object.freeze({id:'uncommon',name:'Inhabituel',label:'Inhabituel',color:'#73dfad',weight:28,probability:.28,essence:2,recruitCost:12}),
@@ -13,7 +15,7 @@ const hero = (id,name,title,rarity,family,color,accent,skin,hair,weaponName,desc
   appearance:Object.freeze(appearance)
 });
 
-export const HEROES = Object.freeze([
+const LEGACY_HEROES = Object.freeze([
   hero('bram','Bram','Le casse-caillou','common','hammer','#26b7a5','#d5f36c','#d6a06f','#513426','Massue sismique',
     'Une lourde frappe en éventail écrase les monstres proches et les repousse.',
     'Le choc repousse les cibles ; les échos ajoutent des frappes.',
@@ -144,6 +146,11 @@ export const HEROES = Object.freeze([
     {head:'shell',body:'frost',accessory:'wave'})
 ]);
 
+export const HEROES=Object.freeze(CREATURE_ROSTER.map(species=>{
+  const previous=LEGACY_HEROES.find(h=>h.id===species.id),template=previous||LEGACY_HEROES.find(h=>h.family===species.family)||LEGACY_HEROES[0];
+  const spell=SPELLS[species.id];
+  return Object.freeze({...template,...species,spell,weaponName:spell.name,description:spell.summary,attackTags:DELIVERY_TAGS[spell.delivery],appearance:Object.freeze({...template.appearance}),innate:Object.freeze({...species.innate})});
+}));
 export const HERO_BY_ID = Object.freeze(Object.fromEntries(HEROES.map(entry=>[entry.id,entry])));
 export const STARTER_IDS = Object.freeze(['bram','lyra','kael']);
 export const SUMMON_COST = 100;

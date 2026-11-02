@@ -1,6 +1,6 @@
 import {createGame} from './simulation.js';
 const STEP=1/60;
-const SHARED=['enemies','gems','breakables','pickups'];
+const SHARED=['enemies','corpses','gems','breakables','pickups'];
 const dist=(a,b)=>Math.hypot(a.x-b.x,a.z-b.z);
 
 // One shared world and AI tick; each hero retains their own weapon/build state.
@@ -87,12 +87,12 @@ export function createExpedition({roster,seed=12345,runId='expedition'}={}){
   function pause(id){if(phase!=='playing')return false;phase='paused';pausedBy=id;inputs.clear();return true;}
   function resume(){if(phase!=='paused')return false;phase='playing';pausedBy=null;return true;}
   function snapshot(id){
-    const a=actors.get(id);if(!a)return null;const s=a.game.state,team=[...actors.values()];
+    const a=actors.get(id);if(!a)return null;const s=a.game.state,team=[...actors.values()],active=team.filter(a=>!a.departed);
     return{...s,phase:phase==='upgrade'?(s.phase==='upgrade'?'upgrade':'waiting'):phase,t:time,offerVersion:a.offerVersion,pausedBy,rewardPlayers:roster.length,
       kills:team.reduce((n,a)=>n+a.game.state.kills,0),bossesDefeated:team.reduce((n,a)=>n+a.game.state.bossesDefeated,0),
       riftsCleared:root.state.riftsCleared,chestsOpened:root.state.chestsOpened,discovered:root.state.discovered,wave:root.state.wave,
-      party:team.filter(a=>!a.departed).map(a=>({id:a.id,name:a.name||'Aventurier',heroId:a.game.state.heroId,player:{...a.game.state.player}})),
-      projectiles:team.flatMap(a=>a.game.state.projectiles),effects:team.flatMap(a=>a.game.state.effects)};
+      party:active.map(a=>({id:a.id,name:a.name||'Aventurier',heroId:a.game.state.heroId,player:{...a.game.state.player}})),
+      projectiles:active.flatMap(a=>a.game.state.projectiles),effects:active.flatMap(a=>a.game.state.effects)};
   }
   function stop(id){const a=actors.get(id);if(!a)return;a.game.state.player.vx=a.game.state.player.vz=0;a.game.state.player.dashTime=0;inputs.delete(id);}
   function depart(id){const a=actors.get(id);if(!a)return false;a.departed=true;a.game.state.player.hp=0;a.game.coop.resetProjectiles();inputs.delete(id);if(phase==='upgrade')offers();return true;}

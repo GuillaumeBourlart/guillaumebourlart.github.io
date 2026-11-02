@@ -1,6 +1,7 @@
 import * as THREE from '../vendor/three.module.js';
 import { paintedMaterial, shadowMaterial } from './textures.js';
 import { buildHero, buildEnemyBody } from './characters.js';
+import {importedHero,importedEnemy,releaseAsset} from './asset-library.js';
 
 export const TAU = Math.PI * 2;
 export const GEO = {
@@ -60,12 +61,14 @@ export function contactShadow(parent,x=0,z=0,radius=1,opacity=.36,stretch=.78,y=
 export function group(parent, x = 0, y = 0, z = 0) {
   const g = new THREE.Group(); g.position.set(x, y, z); if (parent) parent.add(g); return g;
 }
-export function makeHero(hero,options={}) { return buildHero(hero,options); }
+export function makeHero(hero,options={}) { return !options.software&&importedHero(hero)||buildHero(hero,options); }
 
 export function makeMonster(type, biome = 'forest', bossKind = 0, bossTier = 1, options = {}) {
   const g = group(), model = group(g);
   const visualTier=Math.max(1,Math.min(10,Math.floor(bossTier)||1));
-  const {limbs,flaps}=buildEnemyBody(model,type,biome,bossKind,visualTier,options);
+  const asset=!options.software&&options.modelKey?importedEnemy(options.modelKey,type):null;
+  if(asset)model.add(asset);
+  const {limbs,flaps}=asset?{limbs:[],flaps:[]}:buildEnemyBody(model,type,biome,bossKind,visualTier,options);
   const tell = ring(flat('#e99c8c', .58),0,.06,0,1.4,g); tell.visible = false;
   const shadow=contactShadow(g,0,0,.98,.48,.75);
   model.updateMatrixWorld(true);
@@ -84,9 +87,10 @@ export function makeMonster(type, biome = 'forest', bossKind = 0, bossTier = 1, 
   const flash=mesh(GEO.ball,flashMaterial,0,type==='boss'?1.5:.8,0,type==='boss'?1.2:.75,type==='boss'?1.6:.86,.65,g);flash.visible=false;flash.userData.uniqueMaterial=true;
   const shootLane=group(g),shootLines=[];shootLane.visible=false;
   for(const a of[-.24,0,.24]){const ray=group(shootLane);ray.rotation.y=a;mesh(GEO.box,flat('#ffafad',.45),0,.085,6,.06,.015,12,ray);mesh(GEO.cone,flat('#ffc9ad',.7),0,.11,11.8,.28,.6,.012,ray).rotation.x=Math.PI/2;shootLines.push(ray);}
-  g.userData={type,biome,bossKind,bossTier:visualTier,model,modelHeight,limbs,flaps,tell,bar,hp,hpGhost,shadow,chargeLane,lane,shootLane,shootLines,flash}; return g;
+  g.userData={type,biome,bossKind,bossTier:visualTier,model,asset,modelHeight,limbs,flaps,tell,bar,hp,hpGhost,shadow,chargeLane,lane,shootLane,shootLines,flash}; return g;
 }
 
 export function disposeModel(root) {
+  releaseAsset(root);
   root.traverse(o=>{if(o.userData.uniqueGeometry)o.geometry?.dispose();if(o.userData.uniqueMaterial)o.material?.dispose();});
 }

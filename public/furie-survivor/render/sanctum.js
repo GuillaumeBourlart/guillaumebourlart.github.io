@@ -1,6 +1,7 @@
 import * as THREE from '../vendor/three.module.js';
 import {GEO,TAU,material,flat,mesh,disc,ring,group,contactShadow} from './models.js';
 import {paintedMaterial} from './textures.js';
+import {staticAsset} from './asset-library.js';
 
 function sanctumFloor(){
   if(typeof document==='undefined')return paintedMaterial('stone','#303347');
@@ -31,11 +32,16 @@ export function createSanctum(scene,{software=false}={}){
     mesh(GEO.cylinder16,dark,0,2.84,0,.72,.30,.72,g);
     const bowl=mesh(GEO.cone,trim,0,3.12,0,.53,.38,.53,g);bowl.rotation.z=Math.PI;
     const fire=group(g,0,3.25,0);mesh(GEO.round,material(i%2?'#d5bcff':'#ffcda1',.9),0,.12,0,.26,.46,.26,fire);mesh(GEO.gem,material('#fff0da',.9),0,.18,.02,.12,.32,.12,fire);flames.push(fire);
+    if(!software){const real=staticAsset(i%2?'dungeon-pillar':'dungeon-pillar-decorated',{height:3.2,width:1.7});if(real){for(const child of g.children)if(child!==fire)child.visible=false;g.add(real);}}
     if(!software&&i%3===0){const l=new THREE.PointLight(i%2?'#ad8cff':'#ffb882',13,9,2);l.position.set(x,3.8,z);layer.add(l);}
     if(i%3===0){const b=group(g,0,2.1,-.64);mesh(GEO.plane,paintedMaterial('cloth','#635276'),0,0,0,.73,1.65,1,b);mesh(GEO.gem,trim,0,.1,.015,.16,.31,.025,b);banners.push(b);}
     const rune=mesh(GEO.gem,material('#d4b7ef',.24),Math.sin(a)*18,.05,Math.cos(a)*18,.14,.025,.3,layer);rune.rotation.y=a;sigils.push(rune);
   }
   // Broken stairs, framing arches and crystal clusters never change the collision arena.
+  if(!software)for(let i=0;i<8;i++){
+    const a=(i+.5)/8*TAU,key=i%3===0?'dungeon-wall-arched':i%3===1?'dungeon-wall-broken':'dungeon-rubble-large',real=staticAsset(key,{height:i%3===2?1.5:4.5,width:5.4,rotation:a+Math.PI});
+    if(real){real.position.set(Math.sin(a)*23.8,0,Math.cos(a)*23.8);layer.add(real);}
+  }
   for(let i=0;i<4;i++){
     const a=i/4*TAU+Math.PI/4,g=group(layer,Math.sin(a)*24,0,Math.cos(a)*24);g.rotation.y=a;
     for(const side of[-1,1]){mesh(GEO.cylinder16,stone,side*1.7,2.05,0,.48,4.1,.48,g);mesh(GEO.cylinder16,dark,side*1.7,.2,0,.79,.4,.79,g);}

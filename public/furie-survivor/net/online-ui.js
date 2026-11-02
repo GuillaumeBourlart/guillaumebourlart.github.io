@@ -3,9 +3,9 @@ import {escapeHTML as esc,icon,portrait} from '../portraits.js';
 
 export function createOnlineUI({onOpen=()=>{},onClose=()=>{},onGoogle,onPassword,onReset,onLogout,onCreate,onJoin,onReady,onStart,onLeave,onImport,onRetry,getAccount=()=>null,getRoom=()=>null,canImport=()=>false}={}){
   let panel='',create=false,busy=false,lastFocus=null,available=false,status='Connexion aux comptes…',room=null,actionVersion=0;
-  const button=document.createElement('button');button.id='account-button';button.className='account-entry';button.innerHTML=icon('heroes')+'<span>Compte</span>';button.setAttribute('aria-label','Connexion et compte');document.getElementById('game').append(button);
+  const button=document.createElement('button');button.id='account-button';button.className='account-entry';button.innerHTML=icon('heroes')+'<span>Compte</span>';button.setAttribute('aria-label','Connexion et compte');document.querySelector('.header-right').append(button);
   const layer=document.createElement('section');layer.className='online-overlay';layer.hidden=true;layer.setAttribute('role','dialog');layer.setAttribute('aria-modal','true');layer.setAttribute('aria-label','Compte et groupe');
-  layer.innerHTML='<div class="online-dialog"><button class="online-close" data-action="close" aria-label="Fermer">×</button><div id="online-content"></div><p id="online-message" class="online-message" role="status" aria-live="polite"></p></div>';document.body.append(layer);
+  layer.innerHTML='<div class="online-dialog"><button class="online-close" data-action="close" aria-label="Fermer">'+icon('close')+'</button><div id="online-content"></div><p id="online-message" class="online-message" role="status" aria-live="polite"></p></div>';document.body.append(layer);
   const content=layer.querySelector('#online-content'),message=layer.querySelector('#online-message');
   const team=document.createElement('aside');team.className='team-hud';team.hidden=true;team.setAttribute('aria-label','Ton groupe');document.body.append(team);
   const banner=document.createElement('div');banner.className='network-banner';banner.hidden=true;banner.setAttribute('role','status');document.body.append(banner);

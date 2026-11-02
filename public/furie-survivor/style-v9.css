@@ -1,0 +1,274 @@
+/* Shared alignment and the permanent progression / summoning presentation. */
+.asset-loading{position:fixed;inset:0;z-index:1000;display:flex;flex-direction:column;align-items:center;justify-content:center;background:radial-gradient(ellipse at 50% 38%,#224654,#091c2b 70%);color:#f4e4c3;text-align:center;padding:30px}
+.loading-sigil{font-size:75px;color:#b2d8dc;text-shadow:0 0 40px #9dbddc66}
+.asset-loading h1{font:36px Georgia,serif;letter-spacing:-.03em;margin:24px 0 12px}
+.asset-loading p{font-size:12px;color:#a4bfc5;margin:0 0 32px}
+.asset-loading progress{appearance:none;width:min(280px,80vw);height:4px;border:0;background:#53707744;border-radius:5px;overflow:hidden}
+.asset-loading progress::-webkit-progress-bar{background:#53707744}
+.asset-loading progress::-webkit-progress-value{background:linear-gradient(90deg,#93c8c2,#e9d4a4);transition:width .15s}
+.asset-loading small{margin-top:16px;font-size:10px;color:#8aa9b4;letter-spacing:.06em}
+button .glyph{display:block;flex-shrink:0}
+button.icon-button{display:grid;place-items:center;padding:0!important;line-height:1}
+button.icon-button>.glyph{width:20px;height:20px;margin:0;place-self:center;transform:none}
+.hero-switch{display:grid;place-items:center;padding:0;line-height:1}
+.hero-switch .glyph{width:17px;height:17px;margin:0}
+.hero-switch[data-cycle="-1"] .glyph{transform:rotate(180deg)}
+.round-link,.online-close{display:grid;place-items:center;padding:0;line-height:1}
+.online-close .glyph{width:20px;height:20px}
+.header-right .account-entry{position:static;z-index:auto;align-self:center;white-space:nowrap;min-height:40px;padding:9px 13px}
+.primary-button,.secondary-button{align-items:center}
+.rarity-badge{display:inline-flex;align-items:center;justify-content:center;gap:8px;color:var(--rarity);font-size:10px;line-height:1.2;font-weight:800;letter-spacing:.1em;text-transform:uppercase;white-space:nowrap}
+.rarity-marks{display:inline-flex;gap:4px;align-items:center;justify-content:center}
+.rarity-marks i{display:block;width:5px;height:7px;transform:skewX(-18deg);background:currentColor;box-shadow:0 0 8px color-mix(in srgb,currentColor 25%,transparent)}
+.hero-badge>.rarity-badge{margin-bottom:7px;font-size:9px}
+.hero-card .card-rarity{top:13px;padding:6px 9px;background:#0a202cde;border:1px solid color-mix(in srgb,var(--rarity) 45%,transparent);border-radius:5px;max-width:92%}
+.hero-card .card-rarity .rarity-badge{font-size:8px;letter-spacing:.04em;gap:6px}
+.hero-card .card-rarity .rarity-marks{gap:2px}
+.hero-card .card-rarity .rarity-marks i{width:3px;height:6px}
+.hero-card .hero-level-badge{top:45px}
+.hero-card .card-art:after{content:"";position:absolute;inset:auto 12% 29px;height:1px;background:linear-gradient(90deg,transparent,var(--rarity),transparent);opacity:.7}
+
+/* The hero's identity stays beside real, segmented training values. */
+.modal-box.hero-modal{width:min(1100px,calc(100vw - 48px));max-width:none;padding:32px 36px;max-height:calc(100dvh - 48px);border-radius:20px;background:radial-gradient(ellipse at 0 10%,#294c554a,transparent 55%),linear-gradient(130deg,#142f3b,#0b202e 78%);border:1px solid #c4ba8d65;box-shadow:0 25px 100px #020d1da6}
+.hero-modal .hero-sheet{display:grid;grid-template-columns:240px minmax(0,1fr);gap:42px;align-items:start;min-width:0}
+.hero-identity{position:sticky;top:0;display:flex;flex-direction:column;align-items:center;text-align:center;min-width:0;padding:5px 0}
+.hero-sheet .detail-art{position:relative;width:240px;height:280px;min-height:0;margin:0 0 18px;border-radius:120px 120px 22px 22px;background:radial-gradient(ellipse at 50% 60%,color-mix(in srgb,var(--rarity) 16%,transparent),transparent 67%);overflow:hidden}
+.hero-sheet .detail-art .hero-model-image.large{position:absolute;width:100%;height:270px;inset:0;object-fit:contain;max-width:none;margin:0;z-index:1}
+.hero-sheet .detail-art>.hero-portrait{position:absolute;width:100%;height:270px;inset:0;margin:0}
+.hero-sheet .detail-art:before{inset:18px 10px 30px;border-color:color-mix(in srgb,var(--rarity) 48%,transparent)}
+.hero-sheet .detail-role{position:absolute;bottom:4px;left:50%;transform:translateX(-50%);width:auto;padding:7px 18px;font-size:9px;border:0;white-space:nowrap;background:#081f2bcc;border-radius:20px;color:#cbdedc}
+.hero-sheet .hero-identity h2{font-size:46px;line-height:1;margin:13px 0 9px;color:#fff0d3}
+.hero-sheet .hero-title{font-size:12px;margin:0;line-height:1.4;color:#b5c9cc}
+.identity-weapon{display:flex;align-items:center;justify-content:center;gap:8px;color:var(--rarity);font-size:11px;margin:22px 0}
+.identity-weapon .glyph{width:24px;height:24px}
+.hero-identity .primary-button,.hero-identity .secondary-button{min-height:46px;width:100%;margin:0 0 10px;font-size:12px;gap:12px}
+.hero-identity .primary-button>.glyph{width:19px;height:19px}
+.identity-status{font-size:8px;letter-spacing:.12em;color:#8daab0;margin-top:5px}
+.hero-sheet .detail-body{min-width:0;padding:8px 0 0}
+.hero-sheet-summary>.eyebrow{font-size:8px;letter-spacing:.13em;color:#c6cbb2}
+.hero-sheet .detail-stats{display:flex;gap:0;margin:15px 0 20px;border:0;padding:0 0 20px;border-bottom:1px solid #a9c3c322}
+.hero-sheet .hero-combat-metrics>span{flex:1;border:0;border-radius:0;background:none;padding:0 12px 0 0;box-shadow:none}
+.hero-sheet .hero-combat-metrics>span+span{border-left:1px solid #a9c3c322;padding-left:18px}
+.hero-sheet .hero-combat-metrics b{font-size:23px}
+.hero-sheet .hero-combat-metrics small{font-size:7px;letter-spacing:.1em}
+.hero-sheet .hero-combat-metrics .glyph{color:var(--rarity);width:23px;height:23px}
+.workshop-heading{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.workshop-heading .eyebrow{font-size:8px;letter-spacing:.13em;color:#8eafb4}
+.workshop-heading h3{font-family:Georgia,serif;font-size:26px;margin:5px 0 0;color:#fff0d3;letter-spacing:-.03em}
+.training-level{font-size:9px;color:#9ebbc0;display:flex;align-items:baseline;gap:5px}
+.training-level b{font-size:31px;color:#e9d39e;font-weight:500;letter-spacing:-.04em}
+.training-level small{font-size:10px;color:#70919c}
+.training-legend{display:flex;align-items:center;justify-content:space-between;color:#a0b9c0;font-size:9px;gap:12px;margin-bottom:10px}
+.training-legend .currency{background:none;border:0;padding:0;font-size:12px;color:#f3d695}
+.training-legend .currency .glyph{width:16px;height:16px}
+.training-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));column-gap:24px;row-gap:0}
+.training-stat{padding:14px 0 13px;border-bottom:1px solid #a9c3c31c;min-width:0}
+.training-stat-heading{display:flex;align-items:center;gap:8px;margin-bottom:11px}
+.training-symbol{color:var(--stat-color);display:grid;place-items:center}
+.training-symbol .glyph{width:18px;height:18px}
+.training-stat-heading>b{color:#dce9e6;font-size:11px;font-weight:600}
+.training-stat-heading>strong{margin-left:auto;font-size:17px;font-variant-numeric:tabular-nums;font-weight:600;color:#faf4df;letter-spacing:-.03em;white-space:nowrap}
+.training-segments{display:grid;grid-template-columns:repeat(8,minmax(0,1fr));gap:4px;height:8px;isolation:isolate}
+.training-segments i{display:block;transform:skewX(-14deg);border-radius:1px;background:#a1b9c414;border:1px solid #a1b9c424}
+.training-segments i.lit{background:var(--stat-color);border-color:var(--stat-color);box-shadow:0 0 9px color-mix(in srgb,var(--stat-color) 18%,transparent)}
+.training-segments i.next{border-color:color-mix(in srgb,var(--stat-color) 65%,transparent);background:color-mix(in srgb,var(--stat-color) 9%,transparent)}
+.training-stat-footer{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:10px}
+.training-stat-footer>span{font-size:9px;color:#8daab2;line-height:1.5;white-space:nowrap}
+.training-stat-footer>span b{color:var(--stat-color);font-size:10px;font-weight:600}
+.training-stat-footer>span small{display:block;font-size:8px;color:#74949f}
+.training-stat-footer>button{display:flex;align-items:center;justify-content:center;gap:7px;border:1px solid #d3c49365;border-radius:7px;background:#b5ad7e0c;color:#f0dab0;padding:7px 9px;min-height:36px;min-width:74px;transition:background .15s,border-color .15s}
+.training-stat-footer>button>b{font-size:19px;font-weight:400;line-height:1}
+.training-stat-footer>button>span{display:flex;align-items:center;gap:3px;font-size:10px}
+.training-stat-footer>button .glyph{width:13px;height:13px}
+.training-stat-footer>button:hover:enabled{background:#c4b78625;border-color:#ead5a3}
+.training-stat-footer>button:disabled{opacity:.42;filter:none;cursor:default}
+.training-stat.maxed .training-stat-footer>button{color:var(--stat-color);border-color:transparent;opacity:.8;min-width:36px}
+.hero-sheet .training-note{font-size:9px;line-height:1.5;margin:12px 0 15px;color:#8daab2}
+.hero-lore{border-top:1px solid #a9c3c322;padding:15px 0 0}
+.hero-lore summary{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:11px;color:#cfdbd4;cursor:pointer;list-style:none}
+.hero-lore summary::-webkit-details-marker{display:none}
+.hero-lore summary .glyph{width:16px;height:16px;transform:rotate(90deg)}
+.hero-lore[open] summary .glyph{transform:rotate(-90deg)}
+.hero-lore .weapon-description{margin-top:18px}
+.hero-sheet .hero-trait-card{margin:12px 0}
+.hero-sheet p.rarity-base-note{font-size:10px;color:#94aeb8;line-height:1.6}
+
+/* The sanctuary uses the same 3D ritual stage as the reveal. */
+.altar-scene.ritual-sanctuary{position:absolute;right:1%;top:9%;width:56%;height:76%;display:block;overflow:visible;pointer-events:none;background:none;filter:none;transform:none}
+.ritual-sanctuary:before,.ritual-sanctuary:after{display:none}
+.altar-stage{position:absolute;inset:0;z-index:2}
+.altar-stage canvas{display:block;width:100%;height:100%}
+.sanctuary-orbit{position:absolute;inset:10% 4%;border:1px solid #b5c7c31f;border-radius:50%;background:radial-gradient(ellipse,#8bcdd918,transparent 65%);transform:rotate(-16deg)}
+.sanctuary-orbit:before{content:"✦";position:absolute;left:14%;top:9%;color:#d6cfad;font-size:25px;text-shadow:0 0 22px #cbdce752}
+.sanctuary-caption{position:absolute;bottom:1%;left:0;right:0;text-align:center;letter-spacing:.3em;font-size:9px;color:#c2d3cc88}
+.summon-panel .summon-copy{position:relative;z-index:3;width:43%;max-width:490px}
+.summon-panel{overflow-x:hidden}
+.summon-panel .summon-copy>p{max-width:330px}
+.summon-panel .summon-actions{display:flex;flex-direction:row;gap:12px;max-width:430px}
+.summon-panel .summon-actions button{display:flex;align-items:center;justify-content:space-between;flex:1;min-width:0;min-height:54px;padding:12px 15px;gap:10px;font-size:12px;white-space:nowrap;border-radius:8px;line-height:1.2}
+.summon-panel .summon-actions .primary-button{background:linear-gradient(100deg,#f0dfb7,#c5aa74);border:1px solid #e5cca0;color:#18313a;box-shadow:0 5px 20px #03101c33}
+.summon-panel .summon-actions .secondary-button{background:#0c26314d;border:1px solid #c5cdb855;color:#e2e4ce}
+.summon-panel .summon-actions .button-cost{font-size:12px;gap:5px}
+.summon-panel .summon-actions .button-cost .glyph{width:18px;height:18px}
+.summon-panel .summon-small{font-size:11px;color:#adc3c7}
+.summon-panel .guarantee-card{background:none;border-width:0 0 1px;border-radius:0;border-color:#c8c49633;box-shadow:none;padding:16px 0;margin:16px 0 20px}
+.summon-panel .guarantee-card small{font-size:10px;line-height:1.6}
+
+/* Actual rarity appears during the omen, before the paid hero is shown. */
+.summon-reveal{--rarity:#acd9ed;background:#051722f5;backdrop-filter:blur(20px);isolation:isolate;overflow-y:auto;overflow-x:hidden;padding:40px 32px;z-index:150}
+.ritual-atmosphere{position:absolute;inset:0;z-index:-1;pointer-events:none;background:radial-gradient(ellipse at 31% 46%,color-mix(in srgb,var(--rarity) 14%,transparent),transparent 49%),linear-gradient(120deg,#102c34a3,#04121e4d);transition:background .6s}
+.ritual-atmosphere:after{content:"";position:absolute;inset:24px;border:1px solid #c6d6cb15;clip-path:polygon(0 0,15% 0,15% 1px,85% 1px,85% 0,100% 0,100% 100%,85% 100%,85% calc(100% - 1px),15% calc(100% - 1px),15% 100%,0 100%)}
+.ritual-counter{position:absolute;top:35px;left:0;right:0;text-align:center;letter-spacing:.24em;font-size:9px;color:#aac4c9}
+.ritual-layout{width:min(1000px,100%);margin:auto;display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);align-items:center;gap:42px;position:relative}
+.ritual-portrait{position:relative;width:100%;height:min(600px,78dvh);min-height:390px;isolation:isolate}
+.ritual-portrait .reveal-stage{position:absolute;inset:0;width:100%;height:100%;z-index:3}
+.ritual-portrait .reveal-stage canvas{width:100%;height:100%;display:block}
+.ritual-portrait .reveal-fallback{display:none;position:absolute;inset:0;z-index:2;align-items:center;justify-content:center}
+.ritual-portrait:has(.reveal-stage[data-fallback]) .reveal-fallback{display:flex}
+.ritual-portrait .mystery{font-size:160px;color:var(--rarity);text-shadow:0 0 40px var(--rarity)}
+.ritual-portrait .hero-portrait{width:270px;height:350px}
+.ritual-portal{position:absolute;inset:15% 2% 12%;z-index:0;border:1px solid color-mix(in srgb,var(--rarity) 24%,transparent);border-radius:50%;color:var(--rarity);box-shadow:inset 0 0 60px color-mix(in srgb,var(--rarity) 7%,transparent),0 0 60px color-mix(in srgb,var(--rarity) 7%,transparent);transition:border-color .5s,box-shadow .5s}
+.ritual-portal:before,.ritual-portal:after{content:"✦";position:absolute;font-size:21px;left:calc(50% - 10px);top:-14px;color:var(--rarity)}
+.ritual-portal:after{top:auto;bottom:-14px}
+.ritual-portal i{position:absolute;inset:11px;border:1px dashed color-mix(in srgb,var(--rarity) 20%,transparent);border-radius:50%;animation:ritual-orbit 70s linear infinite}
+.ritual-portal i:nth-child(2){inset:31px;border-style:solid;border-color:color-mix(in srgb,var(--rarity) 13%,transparent);transform:rotate(-20deg)}
+.ritual-portal i:nth-child(3){inset:-12px 24px;border-style:solid;border-color:color-mix(in srgb,var(--rarity) 14%,transparent);transform:rotate(20deg)}
+.ritual-beam{position:absolute;left:37%;right:37%;top:0;bottom:15%;z-index:1;opacity:0;background:linear-gradient(0deg,color-mix(in srgb,var(--rarity) 40%,transparent),color-mix(in srgb,var(--rarity) 12%,transparent) 55%,transparent);filter:blur(22px);transition:opacity .45s;transform-origin:bottom}
+[data-reveal-phase="omen"] .ritual-beam{opacity:1;animation:ritual-rise 1.4s ease-out both}
+[data-reveal-phase="revealed"] .ritual-portal{animation:ritual-open .8s ease-out both}
+.ritual-info{position:relative;min-width:0;max-width:390px;padding:25px 0 0;text-align:left}
+.ritual-rarity{display:flex;align-items:center;min-height:26px;margin-bottom:25px;color:var(--rarity)}
+.ritual-rarity .rarity-badge{font-size:13px;letter-spacing:.14em;gap:12px}
+.ritual-rarity .rarity-marks i{width:5px;height:11px}
+.ritual-status{color:#a7c8d1;font-size:11px;letter-spacing:.12em}
+.ritual-info .eyebrow{display:block;font-size:8px;letter-spacing:.15em;color:#96b1bc;min-height:12px}
+.ritual-info #reveal-name{font-size:clamp(42px,5.5vw,70px);line-height:1.05;letter-spacing:-.05em;color:#fff1d7;margin:12px 0 10px;min-height:0}
+.ritual-info #reveal-message{font-size:14px;line-height:1.6;color:#a9c2c8;margin:0 0 18px;min-height:23px;max-width:none}
+.ritual-info .reveal-ability{display:flex;justify-content:flex-start;align-items:center;gap:9px;font-size:13px;color:var(--rarity);min-height:30px;margin:0 0 24px}
+.ritual-info .reveal-ability .glyph{width:23px;height:23px}
+.ritual-stats{display:flex;gap:0;border-top:1px solid #b8c5b124;border-bottom:1px solid #b8c5b124;padding:20px 0;margin-bottom:25px}
+.ritual-stats[hidden]{display:flex!important;visibility:hidden}
+.ritual-stats>span{flex:1;border:0;background:none;padding:0 10px 0 0}
+.ritual-stats>span+span{border-left:1px solid #b8c5b124;padding-left:15px}
+.ritual-stats .glyph{width:19px;height:19px;color:var(--rarity)}
+.ritual-stats b{font-size:22px}
+.ritual-stats small{font-size:6px;letter-spacing:.08em}
+.ritual-info #reveal-button{width:100%;min-height:51px;min-width:0;font-size:12px;gap:15px;margin:0;background:linear-gradient(100deg,#f0dfb7,#c5aa74);color:#172a32;border:1px solid #ecd49d;box-shadow:0 5px 25px #0002}
+.ritual-info #reveal-button .glyph{width:20px;height:20px}
+.ritual-hint{display:block;color:#678c9c;font-size:9px;text-align:center;margin-top:12px}
+.ritual-result-tag{position:absolute;z-index:4;bottom:5%;left:0;right:0;text-align:center;color:var(--rarity);font-size:9px;letter-spacing:.18em}
+.ritual-results{display:flex;align-items:flex-start;justify-content:flex-start;gap:10px;margin:0 0 24px}
+.ritual-result{width:43px;min-height:43px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;border:1px solid #b8c5b124;color:#618594;background:#0d2832;border-radius:5px;padding:8px 3px}
+.ritual-result.current{border-color:#cbd7c377;color:#d4dbc5}
+.ritual-result.seen{border-color:var(--slot-color);color:var(--slot-color)}
+.ritual-result .glyph{width:22px;height:22px}
+.ritual-result b{font-size:12px}
+.ritual-result small{font-size:7px;max-width:100%;overflow:hidden;text-overflow:ellipsis}
+[data-reveal-phase="gathering"] .ritual-info .reveal-ability,[data-reveal-phase="omen"] .ritual-info .reveal-ability{margin-bottom:20px}
+[data-reveal-phase="revealed"] .ritual-info{animation:ritual-copy .6s ease-out both}
+@keyframes ritual-orbit{to{rotate:360deg}}
+@keyframes ritual-rise{from{opacity:0;transform:scaleX(.3)}to{opacity:1;transform:scaleX(1)}}
+@keyframes ritual-open{from{transform:scale(.88);opacity:.3}to{transform:scale(1);opacity:1}}
+@keyframes ritual-copy{from{opacity:.2;translate:0 12px}to{opacity:1;translate:0 0}}
+@media(max-width:900px){
+  .hero-modal .hero-sheet{grid-template-columns:190px minmax(0,1fr);gap:25px}
+  .hero-sheet .detail-art{width:190px;height:245px}
+  .hero-sheet .detail-art .hero-model-image.large{height:235px}
+  .hero-sheet .hero-identity h2{font-size:37px}
+  .training-grid{column-gap:16px}
+  .ritual-layout{gap:20px}
+  .ritual-info #reveal-name{font-size:47px}
+}
+@media(max-width:650px){
+  button.icon-button>.glyph{width:18px;height:18px}
+  .header-right .account-entry{min-height:35px;padding:7px 11px;font-size:10px}
+  .hero-badge>.rarity-badge{font-size:8px;gap:5px}
+  .hero-badge .rarity-marks{gap:2px}
+  .hero-card .card-rarity{top:9px;padding:5px 6px}
+  .hero-card .card-rarity .rarity-badge{font-size:7px;gap:4px;letter-spacing:0}
+  .hero-card .card-rarity .rarity-marks{gap:1.5px}
+  .hero-card .card-rarity .rarity-marks i{height:5px;width:2px}
+  .hero-card .hero-level-badge{top:37px}
+  .modal-box.hero-modal{width:calc(100vw - 20px);max-height:calc(100dvh - 20px);padding:26px 20px 20px;border-radius:17px}
+  .hero-modal .hero-sheet{display:block}
+  .hero-identity{display:grid;grid-template-columns:112px minmax(0,1fr);column-gap:14px;position:static;text-align:left;align-items:center;padding:0 0 20px;margin-bottom:20px;border-bottom:1px solid #b1c9c524}
+  .hero-sheet .detail-art{grid-column:1;grid-row:1/6;width:112px;height:157px;margin:0;border-radius:60px 60px 16px 16px}
+  .hero-sheet .detail-art .hero-model-image.large{height:151px}
+  .hero-sheet .detail-role{font-size:7px;padding:4px 8px;bottom:0}
+  .hero-sheet .detail-art:before{inset:10px 0 10px}
+  .hero-identity>.rarity-badge{justify-content:flex-start;font-size:8px;gap:5px;margin-top:6px}
+  .hero-identity>.rarity-badge .rarity-marks{gap:2px}
+  .hero-identity>.rarity-badge .rarity-marks i{width:3px;height:6px}
+  .hero-sheet .hero-identity h2{font-size:34px;margin:8px 0 3px}
+  .hero-sheet .hero-title{font-size:10px}
+  .identity-weapon{justify-content:flex-start;font-size:9px;margin:9px 0;gap:6px}
+  .identity-weapon .glyph{width:17px;height:17px}
+  .hero-identity .primary-button,.hero-identity .secondary-button{grid-column:2;min-height:37px;font-size:10px;padding:7px 10px;margin:0 0 6px}
+  .identity-status{display:none}
+  .hero-sheet .detail-body{padding:0}
+  .hero-sheet .detail-stats{margin:12px 0 20px;padding:0 0 16px}
+  .hero-sheet .hero-combat-metrics b{font-size:21px}
+  .hero-sheet .hero-combat-metrics .glyph{width:18px;height:18px}
+  .hero-sheet .hero-combat-metrics>span+span{padding-left:12px}
+  .hero-sheet .hero-combat-metrics small{font-size:6px}
+  .workshop-heading h3{font-size:25px}
+  .training-grid{column-gap:18px}
+  .training-stat-heading{gap:5px}
+  .training-stat-heading>b{font-size:10px}
+  .training-stat-heading>strong{font-size:14px}
+  .training-symbol .glyph{width:15px;height:15px}
+  .training-segments{gap:3px;height:7px}
+  .training-stat-footer{align-items:flex-start;gap:4px;flex-direction:column}
+  .training-stat-footer>button{width:100%;padding:6px;min-height:34px}
+  .training-legend{font-size:8px}
+  .training-stat-footer>span{font-size:8px}
+  .training-stat-footer>span small{font-size:7px}
+  .summon-panel .summon-copy{width:100%;max-width:none}
+  .altar-scene.ritual-sanctuary{top:15px;right:-15%;width:75%;height:260px;opacity:.7}
+  .summon-panel .summon-copy>h2{max-width:66%;font-size:37px}
+  .summon-panel .summon-copy>p{max-width:58%;font-size:11px}
+  .summon-panel .guarantee-card{margin-top:32px}
+  .summon-panel .summon-actions{max-width:none;gap:8px}
+  .summon-panel .summon-actions button{padding:12px;min-height:48px;gap:7px;font-size:10px}
+  .summon-panel .summon-actions .button-cost{font-size:11px}
+  .summon-panel .summon-copy>p.summon-small{max-width:100%;font-size:10px}
+  .sanctuary-caption{display:none}
+  .summon-reveal{padding:40px 20px 25px;align-items:flex-start}
+  .ritual-counter{top:21px;font-size:7px;letter-spacing:.18em}
+  .ritual-atmosphere:after{inset:10px}
+  .ritual-layout{display:flex;flex-direction:column;gap:0;width:100%;margin:auto}
+  .ritual-portrait{height:31dvh;min-height:200px;max-height:280px;width:min(100%,340px)}
+  .ritual-portal{inset:10% 9% 3%}
+  .ritual-portrait .reveal-stage{inset:-9% 0 auto;width:100%;height:120%}
+  .ritual-result-tag{bottom:-2px;font-size:7px}
+  .ritual-info{text-align:center;padding:20px 0 0;max-width:350px;width:100%}
+  .ritual-rarity{justify-content:center;margin-bottom:15px;min-height:18px}
+  .ritual-rarity .rarity-badge{font-size:11px}
+  .ritual-info .eyebrow{font-size:7px}
+  .ritual-info #reveal-name{font-size:38px;margin:10px 0 6px}
+  .ritual-info #reveal-message{font-size:12px;margin-bottom:9px;min-height:19px}
+  .ritual-info .reveal-ability{justify-content:center;margin-bottom:15px;font-size:11px;min-height:23px}
+  .ritual-stats{padding:15px 0;margin-bottom:17px;text-align:left}
+  .ritual-stats b{font-size:20px}
+  .ritual-results{justify-content:center;margin-bottom:16px}
+  .ritual-result{width:38px;min-height:35px}
+  .ritual-hint{font-size:8px;margin-top:9px}
+  .ritual-info #reveal-button{min-height:47px}
+}
+@media(max-height:500px) and (min-width:651px){
+  .summon-reveal{padding:23px 35px}
+  .ritual-counter{top:12px;font-size:7px}
+  .ritual-layout{width:min(850px,100%);gap:30px}
+  .ritual-portrait{min-height:270px;height:85dvh}
+  .ritual-info{padding:5px 0 0}
+  .ritual-rarity{margin-bottom:12px}
+  .ritual-info #reveal-name{font-size:38px;margin:8px 0}
+  .ritual-info #reveal-message{font-size:11px;margin-bottom:9px}
+  .ritual-info .reveal-ability{margin-bottom:12px;font-size:11px;min-height:20px}
+  .ritual-stats{padding:10px 0;margin-bottom:12px}
+  .ritual-results{margin-bottom:10px}
+  .ritual-result{min-height:30px;padding:5px}
+  .ritual-info #reveal-button{min-height:40px}
+}
+body[data-reduced-motion="true"] .summon-reveal *,body[data-reduced-motion="true"] .sanctuary-orbit{animation:none!important;transition:none!important}
+@media(prefers-reduced-motion:reduce){.ritual-portal i,.ritual-info,.ritual-beam,.ritual-portal{animation:none;transition:none}}

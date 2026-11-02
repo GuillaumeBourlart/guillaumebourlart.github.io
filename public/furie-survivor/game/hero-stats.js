@@ -1,6 +1,6 @@
 // Shared, real combat values for simulation, progression and hero cards.
 // Every displayed statistic below has a gameplay effect; there are no fake scores.
-import { getHero, MAX_HERO_LEVEL, MAX_STAT_POINTS } from './catalog.js';
+import { getHero,HEROES, MAX_HERO_LEVEL, MAX_STAT_POINTS } from './catalog.js';
 
 export const STAT_DEFINITIONS=Object.freeze({
   power:Object.freeze({id:'power',label:'Puissance',short:'PUI',icon:'damage',description:'+3,5 % de dégâts par point.'}),
@@ -38,28 +38,28 @@ const ROLES=Object.freeze({
 });
 
 const identity=(role,title,description,tuning={})=>Object.freeze({role,trait:Object.freeze({title,description}),tuning:Object.freeze(tuning)});
-export const HERO_IDENTITIES=Object.freeze({
-  bram:identity('guardian','Peau de pierre','Un grand gardien minéral : solide, lourd et sûr au contact.'),
+const LEGACY_IDENTITIES=Object.freeze({
+  bram:identity('guardian','Peau épaisse','Un orc robuste : solide, lourd et sûr au contact.'),
   lyra:identity('balanced','Harmonie lunaire','Un profil polyvalent dont les lunes protègent les angles morts.'),
   kael:identity('ranger','Œil sylvestre','Plus de dégâts, de critique et de vitesse, au prix de la vie.'),
   nyx:identity('skirmisher','Pas d’ombre','Très mobile et rapide, mais moins résistante lors d’une erreur.'),
   poppy:identity('arcanist','Cœur de braise','De gros impacts explosifs, avec une réserve de vie réduite.'),
   volt:identity('arcanist','Haute tension','Des dégâts élevés qui se propagent entre les cibles.'),
   kiko:identity('skirmisher','Retour agile','Un petit combattant rapide qui exploite l’aller-retour.'),
-  momo:identity('brawler','Poings solides','Un panda massif taillé pour la mêlée et les échanges courts.'),
+  momo:identity('brawler','Poings solides','Un yéti massif taillé pour la mêlée et les échanges courts.'),
   ondine:identity('controller','Écume protectrice','Davantage de vie et de contrôle autour d’elle.'),
   boum:identity('engineer','Mélange robuste','Des zones puissantes, une cadence et une mobilité plus lentes.'),
-  sylve:identity('controller','Écorce vive','Une créature végétale résistante qui use la horde au poison.'),
+  sylve:identity('controller','Écorce vive','Un champignon résistant qui use la horde au poison.'),
   astra:identity('balanced','Ciel équilibré','Une couverture radiale régulière dans toutes les directions.'),
   nox:identity('berserker','Faim de minuit','Dégâts et vie élevés, avec un rythme volontairement lourd.'),
-  miel:identity('controller','Ruche gardienne','Une reine-insecte qui guide ses projectiles vers les fuyards.'),
-  pixel:identity('ranger','Visée prismatique','Un automate précis qui perce des lignes entières.'),
-  frimas:identity('controller','Fourrure de givre','Un petit quadrupède qui ralentit les ennemis.'),
-  gizmo:identity('engineer','Atelier blindé','Un minuscule artificier qui prépare le terrain.'),
+  miel:identity('controller','Ruche gardienne','Une créature ailée qui guide son essaim vers les fuyards.'),
+  pixel:identity('ranger','Visée prismatique','Un petit alien précis qui perce des lignes entières.'),
+  frimas:identity('controller','Fourrure de givre','Un blob hérissé qui ralentit les ennemis.'),
+  gizmo:identity('engineer','Atelier blindé','Un blob patient qui prépare le terrain.'),
   orion:identity('guardian','Garde solaire','Un grand lancier protégé, lent mais difficile à renverser.'),
   umbra:identity('controller','Voile gravitaire','Une entité flottante mythique qui regroupe la horde.'),
   drako:identity('berserker','Sang royal','Un dragon mythique très puissant au prix d’une mobilité mesurée.'),
-  rocco:identity('guardian','Rempart','Un énorme golem : +14 % de zone, +5 % de vie et -4 % de vitesse.',{area:1.14,hp:1.05,moveSpeed:.96}),
+  rocco:identity('guardian','Rempart','Un orc massif : +14 % de zone, +5 % de vie et -4 % de vitesse.',{area:1.14,hp:1.05,moveSpeed:.96}),
   plume:identity('ranger','Œil vif','+7 points de critique, mais -6 % de dégâts par impact.',{crit:.07,damage:.94}),
   zeste:identity('skirmisher','Grand panier','+1,2 m de ramassage et +4 % de vitesse.',{pickupRadius:1.2,moveSpeed:1.04}),
   selene:identity('balanced','Veille lunaire','+12 % de zone et 0,15 PV régénéré par seconde.',{area:1.12,regen:.15}),
@@ -72,6 +72,8 @@ export const HERO_IDENTITIES=Object.freeze({
   chrono:identity('ranger','Temps volé','+12 % de cadence, mais -6 % de vie.',{cadence:1.12,hp:.94}),
   yuzu:identity('controller','Marée douce','+18 % de zone, 0,35 PV par seconde et -3 % de vitesse.',{area:1.18,regen:.35,moveSpeed:.97})
 });
+
+export const HERO_IDENTITIES=Object.freeze({...LEGACY_IDENTITIES,...Object.fromEntries(HEROES.filter(h=>!LEGACY_IDENTITIES[h.id]).map(h=>[h.id,identity(h.role||'balanced','Instinct de '+h.name,'Une espèce avec ses propres forces de départ et son arme innée.')]))});
 
 export const HERO_SHAPES=Object.freeze({
   bram:Object.freeze({form:'golem',modelScale:1.18,bodyRadius:.56}),
@@ -115,13 +117,13 @@ export function getTrainingBonuses(pointsOrLevel={}){
 }
 
 export function getHeroBaseStats(id){
-  const hero=getHero(id),rarity=RARITY_POWER[hero.rarity]||RARITY_POWER.common,identity=HERO_IDENTITIES[hero.id]||HERO_IDENTITIES.lyra,role=ROLES[identity.role]||ROLES.balanced,t=identity.tuning,shape=HERO_SHAPES[hero.id]||{};
+  const hero=getHero(id),rarity=RARITY_POWER[hero.rarity]||RARITY_POWER.common,identity=HERO_IDENTITIES[hero.id]||{role:hero.role||'balanced',tuning:{},trait:{title:'Instinct sauvage',description:'Un profil propre à cette espèce, renforcé par son entraînement.'}},role=ROLES[identity.role]||ROLES.balanced,t=identity.tuning,shape=HERO_SHAPES[hero.id]||{},innate=hero.innate||{};
   return{
-    damage:round(rarity.damage*role.damage*(t.damage??1)),maxHp:Math.round(100*rarity.hp*role.hp*(t.hp??1)),
+    damage:round(rarity.damage*role.damage*(t.damage??1)*(innate.damage??1)),maxHp:Math.round(100*rarity.hp*role.hp*(t.hp??1)*(innate.hp??1)),
     defense:round(clamp(rarity.defense+role.defense+(t.defense??0),0,.45)),cadence:round(role.cadence*(t.cadence??1)),
-    moveSpeed:round(role.moveSpeed*(t.moveSpeed??1)),crit:round(clamp(role.crit+(t.crit??0),0,.65)),area:round(t.area??1),
+    moveSpeed:round(role.moveSpeed*(t.moveSpeed??1)*(innate.moveSpeed??1)),crit:round(clamp(role.crit+(t.crit??0)+(innate.crit??0),0,.65)),area:round(t.area??1),
     amount:Math.floor(t.amount??0),regen:round(t.regen??0),pickupRadius:round(4.8+(t.pickupRadius??0)),luck:rarity.luck,
-    bodyRadius:shape.bodyRadius??.47,modelScale:shape.modelScale??1,form:shape.form??'humanoid',
+    bodyRadius:shape.bodyRadius??(hero.group==='blob'?.4:.47),modelScale:shape.modelScale??(hero.group==='blob'?.85:1),form:hero.group||shape.form||'creature',
     role:role.label,roleId:identity.role,trait:{...identity.trait},rarity:hero.rarity
   };
 }

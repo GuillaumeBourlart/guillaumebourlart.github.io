@@ -9,6 +9,14 @@ import {createUI} from './ui.js';
 import {createSoundscape} from './audio.js';
 import {GAME_SPEED} from './game/timing.js';
 import {createDirections} from './ui-directions.js';
+import {preloadGameAssets} from './render/asset-library.js';
+
+const loading=document.getElementById('asset-loading');
+try{
+  const assets=await preloadGameAssets((done,total)=>{if(loading){loading.querySelector('progress').value=done/total;loading.querySelector('small').textContent=`${done} / ${total} modèles préparés`;}});
+  if(assets.failed.length)console.warn('Certaines créatures utilisent temporairement un modèle de secours.',assets.failed.length);
+}catch(error){console.warn('La bibliothèque 3D n’a pas pu être chargée.',error.message);}
+loading?.remove();
 
 let storageNamespace='',account=null,multiplayer=null,onlineUI=null,currentUID=null,profileReady=false,profileRevision=-1,accountCanImport=false,pendingAccount=undefined,authGeneration=0;
 const scopedStorage={getItem:key=>{try{return localStorage.getItem(key+storageNamespace);}catch{return null;}},setItem:(key,value)=>localStorage.setItem(key+storageNamespace,value)};
@@ -57,7 +65,7 @@ async function syncAccount(user){
 async function bootAccounts(){try{account=await createAccount({onChange:user=>{if(account)syncAccount(user);},onStatus:message=>onlineUI?.setStatus(message)});onlineUI?.setAccountReady();if(account.loaded)syncAccount(account.user);}catch(error){onlineUI?.setStatus(error.message);}}
 try{
   game=newGame(true);
-  ui=createUI({progression:career,reducedMotion,soundEnabled:sound,getSaveStatus:()=>account?.user?(profileReady?'Carrière synchronisée avec ton compte':'Connexion à ta carrière…'):'Progression sur cet appareil · connexion disponible',
+  ui=createUI({progression:career,isOnlineAccount:()=>Boolean(account?.user),reducedMotion,soundEnabled:sound,getSaveStatus:()=>account?.user?(profileReady?'Carrière synchronisée avec ton compte':'Connexion à ta carrière…'):'Progression sur cet appareil · connexion disponible',
     onStart:async()=>{unlockAudio();clearInput();if(account?.user){if(!profileReady||!multiplayer){ui.showToast('Patiente pendant la synchronisation de ta carrière.');return;}if(multiplayer.room){onlineUI.openLobby();return;}await multiplayer.create(1);return;}settlement=null;resumeAfterModal=false;game=newGame();syncSpawnBounds(true);game.start();updateUI();soundscape.play('start');},
     onPause:()=>{clearInput();game.pause();updateUI();},
     onResume:()=>{clearInput();game.resume();updateUI();},

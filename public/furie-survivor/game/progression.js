@@ -1,8 +1,8 @@
 import {HEROES,HERO_BY_ID,RARITIES,STARTER_IDS,SUMMON_COST,MAX_HERO_LEVEL,MAX_STAT_POINTS} from './catalog.js';
 import {STAT_KEYS,emptyStatPoints,normalizeStatPoints,legacyStatPoints,heroLevelFromStats,getTrainingBonuses,getHeroCombatStats} from './hero-stats.js';
 
-export const SAVE_KEY = 'furie-survivors-save-v2';
-export const SAVE_VERSION = 2;
+export const SAVE_KEY = 'furie-survivors-save-v3';
+export const SAVE_VERSION = 3;
 const MAX_CURRENCY = 1_000_000_000;
 const MAX_COUNTER = 1_000_000_000;
 const MAX_RUN_SECONDS = 86_400;
@@ -35,9 +35,11 @@ export function calculateRunRewards(result={}) {
   const {seconds,kills,bosses,discoveries,chests} = runMetrics(result);
   const population=Math.max(1,Math.min(4,integer(result.rewardPlayers,1))),killShare=kills/(1+.55*(population-1));
   const survivalBonus=1.2*Math.pow(seconds/60,1.22),coinMultiplier=Math.max(1,Math.min(2,Number(result?.coinMultiplier??result?.stats?.coinMultiplier)||1));
+  // Repeatedly rushing the starting chest must not beat a sustained expedition.
+  const explorationCredit=Math.min(1,seconds/90);
   return {
-    coins:Math.floor((killShare*.08+seconds*.10+survivalBonus+bosses*20+discoveries*1.5+chests*3)*coinMultiplier),
-    shards:Math.floor(seconds/60)+bosses*3+Math.floor(discoveries/10)+Math.floor(chests/6)
+    coins:Math.floor((killShare*.08+seconds*.10+survivalBonus+bosses*20+(discoveries*1.5+chests*3)*explorationCredit)*coinMultiplier),
+    shards:Math.floor(seconds/60)+bosses*3+Math.floor(Math.floor(discoveries/10)*explorationCredit)+Math.floor(Math.floor(chests/6)*explorationCredit)
   };
 }
 
@@ -178,8 +180,8 @@ export function createProgression({storage=undefined,rng=Math.random}={}) {
   function upgradeCost(id,statKey) {
     const level=heroLevel(id);
     if(level===0 || level>=MAX_HERO_LEVEL || statKey&&(!STAT_KEYS.includes(statKey)||heroStatPoints(id)[statKey]>=MAX_STAT_POINTS)) return 0;
-    const extra=level-1;
-    return 350+90*extra+12*extra*extra;
+    const extra=level-1,points=heroStatPoints(id),rank=statKey?points[statKey]:Math.min(...STAT_KEYS.map(key=>points[key]));
+    return 350+20*extra+100*rank+20*rank*rank;
   }
   function recruitCost(id) { return validHero(id)?RARITIES[HERO_BY_ID[id].rarity].recruitCost:0; }
 

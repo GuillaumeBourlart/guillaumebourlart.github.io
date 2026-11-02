@@ -7,6 +7,8 @@ import { createTerrainFeatures } from './terrain-features.js';
 import { createWorldArt } from './world-art.js';
 import { buildTree, dressCamp } from './botany.js';
 import { biomeAt,WORLD_RADIUS } from '../game/world.js';
+import {staticAsset} from './asset-library.js';
+import {createAssetDecor,decorateCamp} from './asset-decor.js';
 export { biomeAt };
 
 const CHUNK=12;
@@ -21,6 +23,7 @@ const inside=(x,z,b,margin=0)=>!b||(x>=b.minX-margin&&x<=b.maxX+margin&&z>=b.min
 function sapling(parent,x,z,pal,size=1,full=true){
   const g=group(parent,x,0,z);g.scale.setScalar(size);
   contactShadow(g,.15,.08,1.2,.32);
+  if(full){const real=staticAsset(x>0?'nature-normal-tree-2':'nature-birch-tree-3',{height:3.3,width:2.8});if(real){g.add(real);g.userData.canopy=real;return g;}}
   if(full)g.userData.canopy=buildTree(g,pal,1,{full:true});
   else{mesh(GEO.cylinder,paintedMaterial('wood','#705844'),0,.8,0,.12,1.6,.12,g);const canopy=group(g,0,1.3,0);mesh(GEO.round,material(pal.leaf),0,.4,0,.84,.8,.76,canopy);mesh(GEO.ball,material(pal.patch),-.22,.8,.02,.53,.48,.5,canopy);g.userData.canopy=canopy;}
   return g;
@@ -80,6 +83,15 @@ function makeChunk(cx,cz,coastRadius,software=false){
 function makeObstacle(o,index,full=true){
   const biome=o.biome||biomeAt(o.x,o.z),pal=BIOMES[biome],g=group(),r=o.radius||1.3,type=o.type||(biome==='crystal'?'crystal':index%3?'tree':'pillar');g.position.set(o.x,0,o.z);
   contactShadow(g,.3,.2,r*1.7,.42,.8);
+  if(full){
+    let key;
+    if(type==='tree'){
+      const species=biome==='desert'?['palm-tree']:biome==='swamp'?['dead-tree']:biome==='crystal'?['pine-tree','birch-tree']:['normal-tree','maple-tree','birch-tree','pine-tree'];
+      const family=species[index%species.length],variant=1+Math.floor(index/species.length)%(family==='dead-tree'?10:5);key='nature-'+family+'-'+variant;
+    }else if(type==='pillar')key=['dungeon-pillar','dungeon-pillar-decorated','dungeon-wall-broken'][index%3];
+    else if(type!=='crystal')key='nature-rock-'+(1+index%5);
+    if(key){const real=staticAsset(key,{height:type==='tree'?r*2.8:type==='pillar'?r*2.2:r*1.4,width:r*2.15,rotation:(index%100)*.0628});if(real){g.add(real);if(type==='tree')g.userData.canopy=real;return g;}}
+  }
   if(type==='tree'&&full){
     g.userData.canopy=buildTree(g,pal,r,{full,biome,seed:index});
   }else if(type==='tree'){
@@ -135,12 +147,18 @@ function makePoi(poi){
     g.userData.drops=[];for(let i=0;i<4;i++)g.userData.drops.push(mesh(GEO.gem,material('#bdfff0',.2),0,1,0,.04,.09,.04,decor));
     for(const s of[-1,1])mesh(GEO.cylinder,paintedMaterial('wood','#6d8071'),s*.81,1.32,0,.08,1.1,.08,decor);mesh(GEO.box,paintedMaterial('wood','#86a397'),0,1.91,0,1.92,.16,.33,decor);
   }
+  if(type==='chest'){
+    const real=staticAsset('dungeon-chest-gold',{height:1.15,width:1.65});
+    if(real){for(const child of decor.children)child.visible=false;decor.add(real);g.userData.lid=real.getObjectByName('chest_lid');g.userData.lidBaseX=g.userData.lid?.rotation.x||0;}
+  }else if(type==='camp'){
+    for(const[key,x,z,height]of[['dungeon-barrel-large',-1.5,.4,.9],['dungeon-crates-stacked',1.7,.5,1.1],['dungeon-banner-red',-.8,-1.4,2.1]]){const real=staticAsset(key,{height,width:1.25});if(real){real.position.set(x,0,z);decor.add(real);}}
+  }
   const beacon=group(g,0,type==='portal'?4.1:type==='shrine'?3.3:2.4,0);mesh(GEO.gem,material(color,.24),0,0,0,.18,.3,.18,beacon);g.userData.beacon=beacon;
   const complete=group(g,0,1.6,.2);for(const [x,y,l,a]of[[-.13,0,.32,-.65],[.12,.13,.62,.65]])mesh(GEO.box,material('#d5f4a0',.1),x,y,0,.08,l,.06,complete).rotation.z=a;complete.visible=false;g.userData.complete=complete;return g;
 }
 export function createEnvironment(scene,{software=false,reducedMotion=false}={}){
   const layer=group(scene),chunks=new Map(),obstacles=new Map(),pois=new Map();let obstacleRun='',lastCenter='',poiRun='',worldRadius=0;
-  const features=createTerrainFeatures(layer),worldArt=createWorldArt(layer,{software});worldArt.setReducedMotion(reducedMotion);
+  const features=createTerrainFeatures(layer),worldArt=createWorldArt(layer,{software}),assetDecor=software?null:createAssetDecor(layer);worldArt.setReducedMotion(reducedMotion);
   const water=mesh(GEO.plane,paintedMaterial('water','#344e70',{flat:true}),0,-.67,0,1,1,1,layer);water.rotation.x=-Math.PI/2;water.renderOrder=-2500;
   const islandGeometry=new THREE.CylinderGeometry(1,1,1,256),island=mesh(islandGeometry,paintedMaterial('stone','#4b6170'),0,-1.3,0,1,2.2,1,layer);island.userData.uniqueGeometry=true;island.renderOrder=-2000;
   const shoreline=[];for(let i=0;i<3;i++){const r=mesh(new THREE.RingGeometry(1,1.1,256),flat('#b1c9cc',.18-i*.035),0,-.57+i*.015,0,1,1,1,layer);r.rotation.x=-Math.PI/2;r.userData.uniqueGeometry=true;shoreline.push(r);r.renderOrder=-1800;}
@@ -157,7 +175,7 @@ export function createEnvironment(scene,{software=false,reducedMotion=false}={})
   const plazaRim=mesh(GEO.fineRing,flat('#c5c4b0',.75),0,.032,0,4.61,4.61,4.61,home);plazaRim.rotation.x=-Math.PI/2;plazaRim.renderOrder=-30;
   for(let i=0;i<8;i++){const a=i/8*TAU;mesh(GEO.softBox,paintedMaterial('stone','#adb6af'),Math.sin(a)*4.5,.07,Math.cos(a)*4.5,.45,.13,.35,home).rotation.y=a;}
   const homeTrees=[sapling(home,5.1,-2.7,BIOMES.forest,1.65,!software),sapling(home,-4.8,-3.7,{...BIOMES.forest,leaf:'#7e8d9d',patch:'#aaa9bf'},1.27,!software)];
-  dressCamp(home,{software});
+  dressCamp(home,{software});if(!software)decorateCamp(home);
   for(const s of[-1,1]){contactShadow(home,s*2.32,-5.2,.95,.36);mesh(GEO.softBox,paintedMaterial('stone','#909fa3'),s*2.32,1.12,-5.2,.62,2.24,.7,home);mesh(GEO.cylinder16,paintedMaterial('stone','#bbb9ad'),s*2.32,.13,-5.2,.49,.26,.49,home);for(let i=0;i<3;i++)mesh(GEO.ball,material(i%2?'#809b84':'#597b70'),s*2.32+.29,2.2-i*.4,-4.79,.2,.2,.08,home);}
   const archGeometry=new THREE.TorusGeometry(1,.15,5,22,Math.PI),arch=mesh(archGeometry,paintedMaterial('stone','#b8b7b4'),0,2.17,-5.2,2.32,1.43,2.2,home);arch.userData.uniqueGeometry=true;
   const archGem=mesh(GEO.gem,material('#cab9e0',.08),0,3.59,-4.95,.2,.31,.14,home);
@@ -181,7 +199,7 @@ export function createEnvironment(scene,{software=false,reducedMotion=false}={})
   }
   function update(state,x,z,time,isMenu,bounds){
     const windTime=reducedMotion?0:time;
-    sizeWorld(state.arenaRadius);updateChunks(x,z,bounds);updateObstacles(state,bounds,windTime);features.update(state,time,bounds,{isMenu,reduced:reducedMotion});worldArt.update(state,time,bounds||{minX:x-25,maxX:x+25,minZ:z-25,maxZ:z+25},isMenu);home.visible=inside(0,0,bounds,12);
+    sizeWorld(state.arenaRadius);updateChunks(x,z,bounds);updateObstacles(state,bounds,windTime);features.update(state,time,bounds,{isMenu,reduced:reducedMotion});worldArt.update(state,time,bounds||{minX:x-25,maxX:x+25,minZ:z-25,maxZ:z+25},isMenu);assetDecor?.update(state,bounds||{minX:x-25,maxX:x+25,minZ:z-25,maxZ:z+25});home.visible=inside(0,0,bounds,12);
     const coastVisible=Math.hypot(x,z)>worldRadius-90;island.visible=coastVisible;water.visible=coastVisible;boundary.visible=coastVisible;for(const r of shoreline)r.visible=coastVisible;
     archGem.rotation.y=windTime*.18;
     for(const tree of homeTrees)tree.userData.canopy.rotation.z=Math.sin(windTime+tree.position.x)*.025;
@@ -204,7 +222,7 @@ export function createEnvironment(scene,{software=false,reducedMotion=false}={})
       ud.halo.scale.setScalar(POI_RADIUS[p.type]);ud.fill.scale.setScalar(POI_RADIUS[p.type]);ud.fill.material=flat(POI_COLORS[p.type],near?.12:.045);
       for(let i=0;i<ud.progress.children.length;i++)ud.progress.children[i].visible=!completed&&p.progress>i/12;
       ud.beacon.position.y=(p.type==='portal'?4.1:p.type==='shrine'?3.3:2.4)+Math.sin(windTime*2.2+p.z)*.12;ud.beacon.rotation.y=windTime*.8;
-      if(ud.lid)ud.lid.rotation.x=completed?-1.25:0;
+      if(ud.lid)ud.lid.rotation.x=(ud.lidBaseX||0)+(completed?-1.25:0);
       if(ud.float&&p.type==='shrine'){ud.float.rotation.y=windTime*.6;ud.float.position.y=1.88+Math.sin(windTime*2)*.15;const k=1+(p.progress||0)*.15;ud.float.scale.set(.53*k,.82*k,.48*k);}
       if(ud.flag)ud.flag.rotation.y=Math.sin(windTime*2+p.x)*.17;
       if(ud.fire){ud.fire.scale.set(1+Math.sin(windTime*8)*.1,.9+Math.sin(windTime*11)*.15,1);for(let i=0;i<ud.smoke.length;i++){const age=(windTime*.42+i/3)%1;ud.smoke[i].position.set(Math.sin(age*4+p.x)*.15,.7+age*1.5,1.25);ud.smoke[i].scale.setScalar(.1+age*.28);}}
@@ -214,5 +232,5 @@ export function createEnvironment(scene,{software=false,reducedMotion=false}={})
     }
     for(const[id,g]of pois)if(!alive.has(id)){layer.remove(g);disposeModel(g);pois.delete(id);}
   }
-  return{update,layer,setReducedMotion(value){reducedMotion=!!value;worldArt.setReducedMotion(value);},dispose(){features.dispose();worldArt.dispose();disposeModel(layer);scene.remove(layer);chunks.clear();obstacles.clear();pois.clear();}};
+  return{update,layer,setReducedMotion(value){reducedMotion=!!value;worldArt.setReducedMotion(value);},dispose(){features.dispose();worldArt.dispose();assetDecor?.dispose();disposeModel(layer);scene.remove(layer);chunks.clear();obstacles.clear();pois.clear();}};
 }

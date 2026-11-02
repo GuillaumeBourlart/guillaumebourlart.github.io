@@ -1,6 +1,7 @@
 import * as THREE from '../vendor/three.module.js';
 import { GEO,TAU,material,flat,mesh,disc,group,contactShadow,disposeModel } from './models.js';
 import { paintedMaterial,terrainZoneMaterial } from './textures.js';
+import {staticAsset} from './asset-library.js';
 
 const clamp=(n,a=0,b=1)=>Math.max(a,Math.min(b,n));
 const phaseOf=id=>{let n=0;for(const c of String(id))n=(n*31+c.charCodeAt(0))%997;return n;};
@@ -55,6 +56,10 @@ function makeBreakable(o){
     for(const s of[-1,1])mesh(GEO.box,paintedMaterial('wood','#664c3c'),s*w*.36,.5,w*.505,.1,.7,.04,body);
     mesh(GEO.box,material('#dcc692'),0,.51,w*.54,.19,.2,.05,body);
     const brace=mesh(GEO.box,paintedMaterial('wood','#c69966'),0,.5,-w*.52,.1,.99,.05,body);brace.rotation.z=-.7;
+  }
+  if(type==='crate'||type==='vase'){
+    const real=staticAsset(type==='crate'?'dungeon-box-stacked':'dungeon-barrel-large',{height:type==='vase'?1.03:.98,width:r*1.8,rotation:phaseOf(o.id)*.01});
+    if(real){for(const child of body.children)child.visible=false;body.add(real);}
   }
   const glint=group(g,0,type==='crystal'?1.65:1.4,0);
   if(loot==='heal'){mesh(GEO.box,flat(lootColor),0,0,0,.1,.34,.075,glint);mesh(GEO.box,flat(lootColor),0,0,0,.29,.1,.075,glint);}
