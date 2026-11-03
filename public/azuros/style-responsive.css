@@ -1,0 +1,85 @@
+/* Collection art has its own frame, separate from the card labels. */
+.heroes-grid .hero-card{margin:0;align-self:stretch;display:flex;flex-direction:column;min-width:0;text-align:left}
+.heroes-grid .card-art{width:100%;height:clamp(138px,11vw,190px);flex:none}
+.heroes-grid .card-art::before{
+  inset:50% auto auto 50%;width:auto;height:67%;aspect-ratio:1;
+  max-width:92%;transform:translate(-50%,-50%);opacity:.42;pointer-events:none
+}
+.heroes-grid .card-art::after{bottom:24px;pointer-events:none}
+.heroes-grid .card-art .hero-model-image,.heroes-grid .card-art .hero-portrait{
+  position:absolute;inset:11% 0 auto;width:100%;height:78%;max-width:none;
+  margin:0;object-fit:contain;transform:none;pointer-events:none
+}
+.heroes-grid .card-info{width:100%;flex:1;min-height:62px}
+.heroes-grid .card-info>span{min-width:0}
+.heroes-grid .card-info strong,.heroes-grid .card-info small{overflow-wrap:anywhere}
+.heroes-grid .hero-card .card-rarity,.heroes-grid .hero-card .hero-level-badge{z-index:2}
+.heroes-grid .hero-card .card-rarity{top:8px;left:8px;max-width:calc(100% - 47px)}
+.heroes-grid .hero-card .hero-level-badge{top:8px;right:8px;max-width:40px}
+.heroes-grid .hero-card .selected-check{bottom:unset;top:36px;z-index:2}
+.heroes-grid .card-owned-strip{z-index:2}
+
+/* Keep the altar inside a dedicated column, with room for its entire base. */
+#summon-panel:not([hidden]){
+  display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);
+  align-items:center;gap:clamp(12px,2.6vw,44px);align-content:safe center;overflow:auto
+}
+#summon-panel .summon-copy{width:100%;max-width:none;min-width:0}
+#summon-panel .summon-copy>h2{max-width:100%;font-size:clamp(30px,3.8vw,66px)}
+#summon-panel .summon-copy>p{max-width:36ch}
+#summon-panel .summon-actions button{min-width:0}
+#summon-panel .altar-scene.ritual-sanctuary{
+  position:relative;inset:auto;margin:0;order:0;width:100%;
+  height:clamp(240px,54svh,580px);opacity:1;overflow:hidden;isolation:isolate
+}
+#summon-panel .sanctuary-orbit{inset:12% 10%;pointer-events:none}
+
+/* The strip's box hugs its contents until the space between the controls fills. */
+.play-controls #build-strip{
+  left:50%;right:auto;transform:translateX(-50%);width:max-content;
+  max-width:min(65%,670px);display:flex;justify-content:flex-start;align-items:center
+}
+#build-strip .build-chip{align-items:center}
+@media(max-width:700px) and (orientation:portrait){
+  body .hub-panel{top:calc(91px + env(safe-area-inset-top))}
+  #summon-panel:not([hidden]){grid-template-columns:minmax(0,1fr);align-content:start;gap:8px}
+  #summon-panel .altar-scene.ritual-sanctuary{order:-1;height:clamp(122px,23svh,208px)}
+  #summon-panel .summon-copy>h2{font-size:clamp(30px,8.3vw,48px)}
+  #summon-panel .guarantee-card{margin-top:12px}
+  .heroes-grid .card-art{height:clamp(128px,42vw,182px)}
+  .play-controls #build-strip{bottom:calc(5px + env(safe-area-inset-bottom));height:42px;padding-block:1px;max-width:calc(100% - 36px)}
+  .play-controls #build-strip .build-chip{width:40px;height:40px;flex-basis:40px}
+  body .play-controls .joystick{left:calc(18px + env(safe-area-inset-left));bottom:calc(53px + env(safe-area-inset-bottom))}
+  body .play-controls .dash-control{right:calc(23px + env(safe-area-inset-right));bottom:calc(54px + env(safe-area-inset-bottom))}
+  body .discovery-hint,body .discovery-hint.boss-present{bottom:calc(136px + env(safe-area-inset-bottom));top:auto}
+  .play-controls .terrain-status{bottom:calc(190px + env(safe-area-inset-bottom))}
+  body:not([data-phase=menu]) .toast{bottom:calc(225px + env(safe-area-inset-bottom))}
+}
+@media(max-height:520px) and (orientation:landscape){
+  #summon-panel:not([hidden]){align-items:start}
+  #summon-panel .altar-scene.ritual-sanctuary{position:sticky;top:0;align-self:start;height:clamp(132px,52svh,258px)}
+  #summon-panel .sanctuary-caption{display:none}
+  #summon-panel .summon-copy>h2{font-size:clamp(27px,4vw,38px)}
+  #summon-panel .summon-copy>p{margin:8px 0}
+  #summon-panel .guarantee-card{margin:8px 0 10px;padding:8px 0}
+  #summon-panel .summon-actions button{min-height:40px;padding:9px 12px}
+  .play-controls #build-strip{
+    left:50%!important;bottom:calc(7px + env(safe-area-inset-bottom))!important;
+    max-width:calc(100% - 238px)!important
+  }
+  body .play-controls .joystick{left:calc(23px + env(safe-area-inset-left));bottom:calc(27px + env(safe-area-inset-bottom))}
+  body .play-controls .dash-control{right:calc(27px + env(safe-area-inset-right));bottom:calc(26px + env(safe-area-inset-bottom))}
+}
+.music-toggle{margin-top:10px}
+
+.brand .brand-logo{
+  display:block;width:clamp(124px,12vw,190px);height:auto;max-height:64px;
+  object-fit:contain;object-position:left center;filter:drop-shadow(0 3px 8px #06151d80)
+}
+.asset-loading .brand-logo{width:clamp(150px,28vw,252px);height:auto;margin:0 auto}
+@media(max-width:700px) and (orientation:portrait){
+  .brand .brand-logo{width:clamp(96px,29vw,152px);max-height:56px}
+}
+@media(max-height:520px) and (orientation:landscape){
+  .brand .brand-logo{width:120px;max-height:42px}
+}

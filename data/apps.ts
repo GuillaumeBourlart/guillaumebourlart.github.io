@@ -14,11 +14,15 @@ export interface App {
   /** Background of the app's visuals. */
   accent: string
   iconUrl?: string
+  /** Wordmark shown in place of the name on the app page. */
+  logoUrl?: string
   screenshots: string[]
   /** Screenshots of a game played sideways, shown in a landscape frame instead of the iPhone. */
   landscapeScreenshots?: boolean
   appStoreUrl?: string
   googlePlayUrl?: string
+  /** A game played in the browser, served from this site. */
+  playUrl?: string
   /** Shows « Bientôt sur … » while the store version is in review or in preparation. */
   appStoreSoon?: boolean
   googlePlaySoon?: boolean
@@ -327,6 +331,32 @@ export const apps: App[] = [
       { label: 'Supprimer son compte', href: '/arena-legends/delete-account.html' },
       { label: 'Mentions légales', href: '/arena-legends/legal.html' },
     ],
+  },
+  {
+    slug: 'azuros',
+    projectType: 'studio',
+    name: 'AZUROS',
+    tagline: 'Un jeu de survie à jouer dans le navigateur, seul ou à quatre',
+    description: 'Choisis ta créature et explore les terres d’Azur : elle attaque toute seule, à toi d’esquiver les vagues de monstres, de refermer les failles et de gagner des éclats pour éveiller de nouvelles créatures.',
+    category: 'Jeux · Action',
+    accent: '#dbe6e9',
+    iconUrl: '/icons/azuros.png',
+    logoUrl: '/icons/azuros-logo.webp',
+    screenshots: shots('azuros', 5),
+    landscapeScreenshots: true,
+    playUrl: '/azuros/',
+    platforms: 'Navigateur, sur ordinateur et sur téléphone',
+    pricing: 'Gratuit',
+    languages: 'Français',
+    features: [
+      'Tes attaques partent toutes seules : tu te déplaces et tu esquives, ta créature fait le reste',
+      '50 créatures à collectionner, du Commun au Mythique, avec 20 familles d’armes et des talents propres',
+      'Des éclats gagnés en expédition pour invoquer de nouvelles créatures',
+      'Quatre régions à explorer, des vagues de monstres et des failles à refermer',
+      'La coop en ligne jusqu’à quatre joueurs',
+      'Sans compte, la progression reste sur l’appareil ; avec un compte Google ou un e-mail, elle te suit partout',
+    ],
+    links: [],
   },
   {
     slug: 'archidex',

@@ -18,11 +18,12 @@ export function generateStaticParams() {
 export function generateMetadata({ params }: { params: { slug: string } }): Metadata {
   const app = findStudioApp(params.slug)
   if (!app) return {}
+  const image = app.logoUrl ?? app.iconUrl
   return {
     title: `${app.name} — ${app.tagline}`,
     description: app.description,
     alternates: { canonical: `/apps/${app.slug}/` },
-    openGraph: { title: `${app.name} — Mobiverse Games`, description: app.description, images: app.iconUrl ? [app.iconUrl] : undefined },
+    openGraph: { title: `${app.name} — Mobiverse Games`, description: app.description, images: image ? [image] : undefined },
   }
 }
 
@@ -46,10 +47,12 @@ export default function AppPage({ params }: { params: { slug: string } }) {
           <div className="app-hero-grid">
             <div className="app-hero-copy">
               <p className="eyebrow">{app.category}</p>
-              <div className="app-hero-title">
-                {app.iconUrl && <Image src={app.iconUrl} width={88} height={88} alt="" className="app-hero-icon" priority />}
-                <h1 id="app-page-title">{app.name}</h1>
-              </div>
+              {app.logoUrl
+                ? <h1 id="app-page-title" className="app-hero-logo"><Image src={app.logoUrl} width={768} height={362} alt={app.name} priority /></h1>
+                : <div className="app-hero-title">
+                    {app.iconUrl && <Image src={app.iconUrl} width={88} height={88} alt="" className="app-hero-icon" priority />}
+                    <h1 id="app-page-title">{app.name}</h1>
+                  </div>}
               <p className="app-hero-tagline">{app.tagline}</p>
               <p className="app-hero-description">{app.description}</p>
               <StoreLinks app={app} />
