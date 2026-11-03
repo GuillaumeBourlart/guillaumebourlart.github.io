@@ -103,7 +103,7 @@ export function createExpedition({roster,seed=12345,runId='expedition'}={}){
     return{...s,phase:phase==='upgrade'?(s.phase==='upgrade'?'upgrade':'waiting'):phase,t:time,offerVersion:a.offerVersion,pausedBy,rewardPlayers:roster.length,
       kills:team.reduce((n,a)=>n+a.game.state.kills,0),bossesDefeated:team.reduce((n,a)=>n+a.game.state.bossesDefeated,0),
       riftsCleared:root.state.riftsCleared,chestsOpened:root.state.chestsOpened,discovered:root.state.discovered,wave:root.state.wave,
-      party:active.map(a=>({id:a.id,name:a.name||'Aventurier',heroId:a.game.state.heroId,player:{...a.game.state.player}})),
+      party:active.map(a=>({id:a.id,name:a.name||'Aventurier',heroId:a.game.state.heroId,choosing:a.game.state.phase==='upgrade',player:{...a.game.state.player}})),
       projectiles:active.flatMap(a=>a.game.state.projectiles),effects:active.flatMap(a=>a.game.state.effects)};
   }
   function stop(id){const a=actors.get(id);if(!a)return;a.game.state.player.vx=a.game.state.player.vz=0;a.game.state.player.dashTime=0;inputs.delete(id);}

@@ -8,6 +8,7 @@ import {modelImage,createHeroShowcase} from './render/hero-showcase.js';
 import {activePowerDescription,powerArt,powerSummary} from './power-art.js';
 import {rarityBadge,rarityRank,trainingPreview} from './hero-presentation.js';
 import {createSummonFlow} from './summon-flow.js';
+import {deathPresentation,livingSpectateTarget} from './game/death-presentation.js';
 const BIOMES={forest:'Forêt vive',crystal:'Flèches de cristal',desert:'Dunes dorées',swamp:'Marais des échos',rift:'Salle de faille'};
 const POI_COLORS={chest:'#ffd575',shrine:'#bb9cff',camp:'#ffad85',well:'#8ae8e7',portal:'#b9f0ff'};
 const HERO_TAGS={hammer:['Mêlée','Repousse'],orbit:['Protection rapprochée','Rotation'],bow:['Distance','Perforation'],daggers:['Distance','Éventail'],fireball:['Distance','Explosion'],lightning:['Chaîne','Impact direct'],boomerang:['Aller-retour','Perforation'],fists:['Mêlée','Cadence élevée'],wave:['Zone circulaire','Repousse'],grenade:['Zone','Explosion différée'],thorns:['Perforation','Poison'],stars:['Tir radial','Couverture'],scythe:['Mêlée','Large balayage'],bees:['Distance','Guidage'],laser:['Ligne','Perforation'],frost:['Éventail','Ralentissement'],mines:['Pièges','Explosion'],spear:['Allonge','Perforation'],vortex:['Zone','Attraction'],dragon:['Cône','Souffle répété']};
@@ -21,7 +22,7 @@ const currency=(key,amount,plus=false)=>`<span class="currency ${key}" title="${
 const heroMetrics=s=>`<span>${icon('damage')}<b>${s.power}</b><small>PUISSANCE</small></span><span>${icon('vitality')}<b>${s.maxHp}</b><small>VIE</small></span><span>${icon('shield')}<b>${(s.defense*100).toLocaleString('fr-FR',{maximumFractionDigits:1})} %</b><small>DÉFENSE</small></span>`;
 export function createUI(options){
   const career=options.progression,$=id=>document.getElementById(id),call=(name,...args)=>options[name]?.(...args);
-  let state=null,phase='menu',tab='camp',filter='all',lastPhase='',careerKey='',offersKey='',buildKey='',heroKey='',modalType='',detailId='',toastUntil=0,lastSimMessage='',lastMessageTime=0,lastRunId='',settlement=null,sound=options.soundEnabled!==false,interactionKey='',lastFocus=null,mapMode='nearby';
+  let state=null,phase='menu',tab='camp',filter='all',lastPhase='',careerKey='',offersKey='',buildKey='',heroKey='',modalType='',detailId='',toastUntil=0,lastSimMessage='',lastMessageTime=0,lastRunId='',settlement=null,sound=options.soundEnabled!==false,interactionKey='',lastFocus=null,mapMode='nearby',lossStartedAt=0;
   const mix={effects:100,music:100,...options.audioMix};
   let pointer=null,center={x:0,y:0,range:36},input={x:0,z:0},dashQueued=false,summoning=false;
   let reducedMotion=typeof options.reducedMotion==='boolean'?options.reducedMotion:window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -45,7 +46,8 @@ export function createUI(options){
     $('hub').hidden=!menu;$('hub-header').hidden=!menu;$('hub-nav').hidden=!menu;$('save-state').hidden=!menu;
     for(const name of ['camp','heroes','summon','journal'])$(`${name}-panel`).hidden=!menu||tab!==name;
     $('hud').hidden=!run;$('play-controls').hidden=phase!=='playing'||!!modalType;$('upgrade-panel').hidden=phase!=='upgrade'||!!modalType;
-    $('pause-panel').hidden=phase!=='paused'||!!modalType;$('result-panel').hidden=!['won','lost'].includes(phase);
+    const lossReady=phase==='lost'&&lossStartedAt&&deathPresentation(performance.now()-lossStartedAt).showResult;
+    $('pause-panel').hidden=phase!=='paused'||!!modalType;$('result-panel').hidden=phase==='won'?false:phase==='lost'?!lossReady:true;
     if(phase!=='playing'){$('boss-hud').hidden=true;$('discovery-hint').hidden=true;clearInput();}
     const blocked=!!modalType||summoning;for(const id of ['hub','hub-header','hub-nav'])$(id).inert=blocked; $('hud').inert=blocked||phase!=='playing';
   }
@@ -205,13 +207,20 @@ export function createUI(options){
   }
   function update(nextState,result=null){
     if(!nextState)return;state=nextState;phase=state.phase;if(result)settlement=result;
-    if(state.runId!==lastRunId){lastRunId=state.runId;offersKey='';buildKey='';heroKey='';lastSimMessage='';lastMessageTime=0;interactionKey='';settlement=result;}
-    if(phase!==lastPhase){clearInput();lastPhase=phase;setVisibility();if(phase==='menu')refreshCareer(true);if(['won','lost'].includes(phase))renderResult();}
+    if(state.runId!==lastRunId){lastRunId=state.runId;offersKey='';buildKey='';heroKey='';lastSimMessage='';lastMessageTime=0;interactionKey='';settlement=result;lossStartedAt=0;}
+    if(phase!==lastPhase){clearInput();if(phase==='lost')lossStartedAt=performance.now();else lossStartedAt=0;lastPhase=phase;setVisibility();if(phase==='menu')refreshCareer(true);if(['won','lost'].includes(phase))renderResult();}
+    else if(result&&['won','lost'].includes(phase))renderResult();
     refreshCareer();
     const hero=getHero(state.heroId),p=state.player,health=clamp(p.hp/p.maxHp),xp=clamp(state.xp/Math.max(1,state.nextXP));
     if(heroKey!==hero.id){heroKey=hero.id;$('hud-portrait').innerHTML=modelImage(hero,{avatar:true})||portrait(hero);$('hud-portrait').style.setProperty('--hero-color',hero.color);text($('hud-hero-name'),hero.name);}
     const vitals=$('health-track').closest('.vitals');vitals.style.setProperty('--health',String(health));vitals.style.setProperty('--experience',String(xp));
     text($('level-label'),`NIV. ${state.level}`);text($('health-value'),`${Math.ceil(p.hp)} / ${Math.ceil(p.maxHp)}`);$('health-fill').style.transform=`scaleX(${health})`;$('health-track').setAttribute('aria-valuenow',Math.ceil(p.hp));$('health-track').setAttribute('aria-valuemax',Math.ceil(p.maxHp));$('health-track').closest('.vitals').classList.toggle('low-health',health<.25);$('xp-fill').style.transform=`scaleX(${xp})`;$('xp-track').setAttribute('aria-valuenow',Math.round(xp*100));
+    const spectated=livingSpectateTarget(state),critical=phase==='playing'&&p.hp>0&&health<.25&&!modalType,downed=phase==='playing'&&p.hp<=0&&!!spectated,danger=$('danger-overlay');
+    danger.hidden=!critical&&!downed;danger.dataset.mode=downed?'downed':'critical';danger.style.setProperty('--danger-alpha',String(clamp(.35+(1-health)*.55,.35,.9)));text($('danger-label'),downed?`À TERRE · CAMÉRA SUR ${spectated.name.toUpperCase()}`:'VIE CRITIQUE');
+    const choosing=(state.party||[]).filter(member=>member.choosing).map(member=>member.name),waiting=$('team-waiting');waiting.hidden=phase!=='waiting';
+    if(phase==='waiting')text($('team-waiting-label'),choosing.length?`${choosing.join(', ')} ${choosing.length>1?'choisissent':'choisit'}… Le combat est en pause.`:'Les autres aventuriers terminent leur choix… Le combat est en pause.');
+    const lossStage=phase==='lost'&&lossStartedAt?deathPresentation(performance.now()-lossStartedAt):null,cinematic=$('death-cinematic');cinematic.hidden=!lossStage||lossStage.showResult;cinematic.dataset.word=String(Boolean(lossStage?.showLostWord));
+    if(phase==='lost')$('result-panel').hidden=!lossStage?.showResult;
     text($('timer'),timeLabel(state.t));text($('wave-label'),`VAGUE ${state.wave||1}`);
     const rift=state.rift,riftPhase=rift?.phase||'waiting',riftOffered=['offer','activating'].includes(riftPhase),riftActive=['incoming','active'].includes(riftPhase),riftLabel=riftOffered?`Faille ouverte · ${timeLabel(Math.max(0,rift.expiresAt-state.t))}`:riftPhase==='incoming'?'Gardien en approche':riftPhase==='active'?`Défi · ${timeLabel(Math.max(0,(rift.deadlineAt??state.t)-state.t))}`:state.nextRiftAt>0?`Faille dans ${timeLabel(Math.max(0,state.nextRiftAt-state.t))}`:'Exploration libre';
     text($('next-boss'),riftLabel);$('run-clock-button').classList.toggle('rift-available',riftOffered);$('run-clock-button').classList.toggle('rift-active',riftActive);$('run-clock-button').setAttribute('aria-label',`${riftLabel}. Comprendre ce défi facultatif.`);text($('biome-label'),(BIOMES[state.biome]||BIOMES.forest).toUpperCase());

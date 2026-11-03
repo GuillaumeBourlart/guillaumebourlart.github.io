@@ -272,3 +272,32 @@ button.icon-button>.glyph{width:20px;height:20px;margin:0;place-self:center;tran
 }
 body[data-reduced-motion="true"] .summon-reveal *,body[data-reduced-motion="true"] .sanctuary-orbit{animation:none!important;transition:none!important}
 @media(prefers-reduced-motion:reduce){.ritual-portal i,.ritual-info,.ritual-beam,.ritual-portal{animation:none;transition:none}}
+
+/* Combat danger and defeat presentation. These layers are viewport-bound, so
+   the red edge remains proportional on phones, ultrawide screens and rotation. */
+.danger-overlay{--danger-alpha:.5;position:fixed;inset:0;z-index:12;pointer-events:none;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;padding:max(78px,calc(env(safe-area-inset-bottom) + 72px));color:#ffe7df;text-shadow:0 2px 12px #2b0308;box-shadow:inset 0 0 clamp(48px,9vw,150px) clamp(7px,1.6vw,28px) rgb(196 19 34 / var(--danger-alpha));background:radial-gradient(ellipse at center,transparent 47%,rgb(104 0 13 / calc(var(--danger-alpha) * .48)) 100%);animation:danger-breathe 1.05s ease-in-out infinite}
+.danger-overlay:before{content:"";position:absolute;inset:0;border:clamp(3px,.7vw,11px) solid rgb(255 70 78 / calc(var(--danger-alpha) * .62))}
+.critical-heart{font-size:clamp(27px,4vw,48px);line-height:1;color:#ff5360;filter:drop-shadow(0 0 12px #ff152e);animation:critical-heartbeat .86s ease-in-out infinite}
+.danger-overlay>strong{margin-top:7px;font-size:clamp(9px,1.1vw,13px);letter-spacing:.2em}
+.danger-overlay[data-mode=downed]{justify-content:center;background:radial-gradient(circle,transparent 15%,#28050f99 100%);box-shadow:inset 0 0 clamp(60px,12vw,180px) clamp(12px,2vw,34px) rgb(130 0 20 / .65);animation:none}
+.danger-overlay[data-mode=downed] .critical-heart{display:none}
+.danger-overlay[data-mode=downed]>strong{padding:12px 18px;border:1px solid #ff9a9a66;border-radius:999px;background:#210a16cc;font-size:clamp(10px,1.5vw,16px)}
+@keyframes critical-heartbeat{0%,24%,100%{transform:scale(.9)}34%{transform:scale(1.24)}43%{transform:scale(.98)}53%{transform:scale(1.13)}67%{transform:scale(.92)}}
+@keyframes danger-breathe{0%,100%{opacity:.68}40%{opacity:1}72%{opacity:.78}}
+
+.team-waiting{position:fixed;z-index:38;left:50%;top:50%;transform:translate(-50%,-50%);pointer-events:none;display:flex;flex-direction:column;align-items:center;gap:7px;min-width:min(360px,calc(100vw - 32px));padding:18px 24px;border:1px solid #d7e7ee38;border-radius:18px;background:#0a1d2bd9;box-shadow:0 18px 55px #020b13aa;backdrop-filter:blur(10px);text-align:center}
+.team-waiting>span{font-size:9px;letter-spacing:.2em;color:#d8c596}
+.team-waiting>strong{font-size:14px;font-weight:650;color:#eef3ed}
+
+.death-cinematic{position:fixed;inset:0;z-index:55;pointer-events:none;display:flex;flex-direction:column;align-items:center;justify-content:center;background:radial-gradient(circle at center,transparent 8%,#12060b9c 70%,#070207e8);text-align:center}
+.death-cinematic strong{font-family:'Bree Serif',Georgia,serif;font-size:clamp(64px,13vw,170px);font-weight:400;line-height:.9;letter-spacing:.08em;color:#f5ddd5;text-shadow:0 8px 45px #2b0009;opacity:0;transform:scale(.82);transition:opacity .42s ease-out,transform .42s ease-out}
+.death-cinematic span{margin-top:18px;font-size:clamp(10px,1.5vw,15px);letter-spacing:.14em;color:#d2b9b4;opacity:0;transition:opacity .35s ease-out .12s}
+.death-cinematic[data-word=true] strong,.death-cinematic[data-word=true] span{opacity:1;transform:scale(1)}
+
+@media(max-width:650px){
+  .danger-overlay{padding:max(104px,calc(env(safe-area-inset-bottom) + 96px))}
+  .team-waiting{top:58%;padding:15px 18px}.team-waiting>strong{font-size:12px}
+}
+body[data-reduced-motion=true] .danger-overlay,body[data-reduced-motion=true] .critical-heart{animation:none}
+body[data-reduced-motion=true] .death-cinematic strong,body[data-reduced-motion=true] .death-cinematic span{transition:none}
+@media(prefers-reduced-motion:reduce){.danger-overlay,.critical-heart{animation:none}.death-cinematic strong,.death-cinematic span{transition:none}}

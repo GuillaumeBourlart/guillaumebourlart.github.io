@@ -18,6 +18,7 @@ import {createModelPool} from './render/model-pool.js';
 import {createHealthBatch} from './render/health-batch.js';
 import {cacheSkeletonPose} from './render/pose-cache.js';
 import {activeAttack,attackPose} from './game/attack-timing.js';
+import {deathPresentation,livingSpectateTarget} from './game/death-presentation.js';
 
 const clamp=(v,a=0,b=1)=>Math.max(a,Math.min(b,v));
 const distance=(a,b)=>Math.hypot(a.x-b.x,a.z-b.z);
@@ -184,7 +185,7 @@ export function createRenderer(container){
   const orbitPreviews=[];
   for(let i=0;i<3;i++){const g=group(previewOrbits);mesh(GEO.moon,material('#e9d8ff',.28),0,0,0,.75,.75,.75,g);mesh(GEO.gem,material('#e8ce92',.12),.12,.02,.03,.08,.12,.08,g);orbitPreviews.push(g);}
   let hero=null,heroId='',previewOverride=null,width=1,height=1,lastTime=0,camX=0,camZ=0,menuZoom=1,lastMenu=true;
-  let lastRunId='',viewBounds={minX:-20,maxX:20,minZ:-20,maxZ:20},trailClock=0,lastTrail={x:0,z:0};
+  let lastRunId='',viewBounds={minX:-20,maxX:20,minZ:-20,maxZ:20},trailClock=0,lastTrail={x:0,z:0},lastRenderPhase='',lossStartedAt=0;
   const trails=[];
   function withinView(o,padding=5){return o.x>=viewBounds.minX-padding&&o.x<=viewBounds.maxX+padding&&o.z>=viewBounds.minZ-padding&&o.z<=viewBounds.maxZ+padding;}
   function clearEffect(g){disposeModel(g);for(const m of g.userData.materials||[])m.dispose();for(const t of g.userData.textures||[])t.dispose();}
@@ -256,8 +257,9 @@ export function createRenderer(container){
       for(let i=0;i<ud.flaps.length;i++)ud.flaps[i].rotation.z=Math.sin(phase*1.5)*.48*(i%2?1:-1);
       const telling=(e.telegraph||0)>0,progress=1-(e.telegraph||0)/Math.max(.01,e.telegraphDuration||1);
       ud.tell.visible=telling;ud.tell.scale.setScalar((e.type==='boss'?2.1:1.4)*(1+progress*.22));
-      ud.chargeLane.visible=telling&&e.attackKind==='charge';ud.chargeLane.rotation.y=(e.attackAngle||0)-g.rotation.y;ud.chargeLane.scale.setScalar(1/s);ud.lane.scale.z=7.2*Math.max(.1,progress);ud.lane.position.z=ud.lane.scale.z/2;
-      ud.shootLane.visible=telling&&e.attackKind==='shoot';ud.shootLane.rotation.y=(e.attackAngle||0)-g.rotation.y;ud.shootLane.scale.setScalar(1/s);for(let i=0;i<3;i++)ud.shootLines[i].visible=i===1||e.shotCount===3;
+      // The body wind-up remains readable, but directional floor lanes made
+      // charges and shots trivial to solve before they happened.
+      ud.chargeLane.visible=false;ud.shootLane.visible=false;
       const shadowScale=1-Math.min(.28,hop*.35);ud.shadow.scale.set(1.96*shadowScale,1.96*.75*shadowScale,1);
       updateMonsterFeedback(g,e,time,{reducedMotion:reduced,cameraQuaternion:camera.quaternion});
       healthBatch?.capture(g,ud.bar);
@@ -316,7 +318,7 @@ export function createRenderer(container){
       g.position.set(shot.x,Number.isFinite(shot.y)?shot.y:ground?.21:shot.type==='orbit'?1.15:.92,shot.z);
       const angle=Number.isFinite(shot.angle)?shot.angle:Math.atan2(shot.vx||0,shot.vz||1);
       g.rotation.y=['orbit','boomerang','stars','vortex'].includes(shot.type)||['boomerang','stars','vortex'].includes(shot.family)?time*(shot.type==='orbit'?8:5):angle;
-      const radius=shot.radius||.18,s=shot.type==='wave'||shot.type==='vortex'?Math.max(.5,radius):clamp(radius/.23,.65,3.4);g.scale.setScalar(s);
+      const radius=shot.radius||.18,s=shot.type==='wave'||shot.type==='vortex'?Math.max(.5,radius):clamp(radius/.23,.65,3.4),visualScale=shot.hostile?1.35:1;g.scale.setScalar(s*visualScale);
       if(shot.family==='bees')g.position.y+=Math.sin(time*22+phaseOf(shot.id))*.07;
     }
     for(const[id,g]of shotMap)if(!active.has(id)){entities.remove(g);shotMap.delete(id);shotPool.put(g.userData.poolKey,g);}
@@ -367,15 +369,18 @@ export function createRenderer(container){
     if(!state?.player)return;
     const dt=Math.min(.1,Math.max(.001,time-lastTime||.016));lastTime=time;
     const p=state.player,isMenu=state.phase==='menu'||state.preview===true,ambientTime=reduced?0:time;
+    if(state.phase!==lastRenderPhase){lossStartedAt=state.phase==='lost'?performance.now():0;lastRenderPhase=state.phase;}
+    const lossStage=state.phase==='lost'&&lossStartedAt?deathPresentation(performance.now()-lossStartedAt):null;
+    const spectated=livingSpectateTarget(state),cameraSubject=spectated?.player||p;
     const heroData=getHero(isMenu&&previewOverride?previewOverride:state.heroId||'lyra');
     if(heroData.id!==heroId){
       if(hero){heroLayer.remove(hero);disposeModel(hero);}hero=makeHero(heroData,{software});heroLayer.add(hero);heroId=heroData.id;
     }
     if(state.runId!==lastRunId){for(const entry of corpses.values())if(entry.g)releaseEnemy(entry.g);corpses.clear();corpseBatch?.clear();removeEffects();combatTrails.clear();for(const t of trails){t.userData.life=0;t.visible=false;}lastRunId=state.runId;}
     const phone=width<700;menuZoom=isMenu?1:0;
-    const span=isMenu?(phone?10.6:12.5):gameplayFraming(width,height).span;
+    const baseSpan=isMenu?(phone?10.6:12.5):gameplayFraming(width,height).span,span=baseSpan*(1-(lossStage?.zoomProgress||0)*.28);
     camera.left=-span*width/height/2;camera.right=span*width/height/2;camera.top=span/2;camera.bottom=-span/2;camera.updateProjectionMatrix();
-    const targetX=p.x-(isMenu&&!phone?3.1:0),targetZ=p.z+(isMenu?(phone?3.15:.55):GAME_CAMERA.leadZ);
+    const targetX=cameraSubject.x-(isMenu&&!phone?3.1:0),targetZ=cameraSubject.z+(isMenu?(phone?3.15:.55):GAME_CAMERA.leadZ);
     if(lastMenu!==isMenu){camX=targetX;camZ=targetZ;lastMenu=isMenu;lastTrail={x:p.x,z:p.z};}
     const blend=1-Math.exp(-dt*8);camX+=(targetX-camX)*blend;camZ+=(targetZ-camZ)*blend;
     const cameraY=22-menuZoom*10,cameraZ=18-menuZoom*3;

@@ -7,7 +7,7 @@ const sampleLevel={select:.09,xp:.13,orbit:.09,hit:.14,critical:.23,hurt:.10,sum
 export function createSoundscape({bank=AUDIO_BANK,effectsVolume=1,musicVolume=1}={}) {
   let context=null,master=null,effects=null,wind=null,windFilter=null,enabled=false,active=true;
   let suspendTimer=null,nodes=0,lastRun='',lastPhase='',lastHP=0,lastDash=0,lastAttack=0,lastCollected=0,lastOrbit=0;
-  let nextAmbient=0,nextStep=0,ambientIndex=0,seen=new Set(),noiseBuffer=null,ambience=null,ambienceKey='';
+  let nextAmbient=0,nextStep=0,nextHeartbeat=0,ambientIndex=0,seen=new Set(),noiseBuffer=null,ambience=null,ambienceKey='';
   const samples=new Map(),sampleIndices=new Map();
   const gates=new Map();
   let music=null,musicPhase='menu';
@@ -89,6 +89,7 @@ export function createSoundscape({bank=AUDIO_BANK,effectsVolume=1,musicVolume=1}
       case 'reveal':chord(detail==='legendary'?[293.66,369.99,440,587.33,739.99,880]:detail==='epic'?[293.66,440,587.33,739.99]:[440,554.37,659.25],.08,.08);break;
       case 'extract':chord([369.99,440,587.33],.06,.1);break;
       case 'death':note(175,.6,{end:65,type:'triangle',volume:.075});break;
+      case 'heartbeat':note(58,.14,{end:45,type:'sine',volume:.075});note(52,.17,{end:40,type:'sine',volume:.055,delay:.17});break;
       case 'level':chord([587.33,739.99,880],.05,.06);break;
       case 'reward':chord([659.25,880],.04,.07);break;
       case 'rift-open':if(gate('rift-open',1)){note(146.83,.85,{end:293.66,type:'sine',volume:.045});chord([440,587.33,739.99],.035,.18);}break;
@@ -141,7 +142,7 @@ export function createSoundscape({bank=AUDIO_BANK,effectsVolume=1,musicVolume=1}
   function update(state){
     if(!state)return;
     if(state.phase!==musicPhase){musicPhase=state.phase;mixMusic();}
-    if(state.runId!==lastRun){lastRun=state.runId;lastHP=state.player.hp;lastDash=0;lastAttack=state.attackCount||0;lastCollected=state.collected||0;lastOrbit=state.t||0;seen.clear();lastPhase=state.phase;}
+    if(state.runId!==lastRun){lastRun=state.runId;lastHP=state.player.hp;lastDash=0;lastAttack=state.attackCount||0;lastCollected=state.collected||0;lastOrbit=state.t||0;nextHeartbeat=0;seen.clear();lastPhase=state.phase;}
     if(!enabled||!active||!context){lastHP=state.player.hp;lastAttack=state.attackCount||0;lastCollected=state.collected||0;return;}
     const now=context.currentTime,p=state.player,playing=state.phase==='playing';
     if(lastPhase!==state.phase){if(state.phase==='upgrade')play('level');if(state.phase==='lost')play('death');if(state.phase==='won')play('extract');lastPhase=state.phase;}
@@ -151,6 +152,9 @@ export function createSoundscape({bank=AUDIO_BANK,effectsVolume=1,musicVolume=1}
     for(const fx of state.effects||[]){nextSeen.add(fx.id);if(!seen.has(fx.id)&&['rift-open','rift-start','rift-victory'].includes(fx.type))play(fx.type);}
     if(playing){
       if(p.hp<lastHP)play('hurt');
+      const healthRatio=p.maxHp>0?p.hp/p.maxHp:0;
+      if(healthRatio>0&&healthRatio<.25&&now>=nextHeartbeat){play('heartbeat');nextHeartbeat=now+.52+healthRatio*1.6;}
+      else if(healthRatio<=0||healthRatio>=.25)nextHeartbeat=now;
       if(p.dashTime>0&&lastDash<=0)play('dash');
       if(Math.hypot(p.vx,p.vz)>2&&now>nextStep&&p.dashTime<=0){nextStep=now+(p.terrain==='mud'?.32:.25);if(!sample('step_'+(p.terrain||'normal'),{volume:p.terrain==='mud'?.034:.045,rate:p.terrain==='mud'?.78:p.terrain==='ice'?1.22:1})){noise(.045,{frequency:p.terrain==='ice'?2000:p.terrain==='mud'?220:550,volume:.012});note(75,.045,{end:40,type:'triangle',volume:.009});}}
       if((state.attackCount||0)>lastAttack&&gate('attack',.09))play('attack',{family:state.attackFamily});
