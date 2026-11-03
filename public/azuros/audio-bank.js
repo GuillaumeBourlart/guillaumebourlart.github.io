@@ -3,7 +3,7 @@ const clips=(...names)=>Object.freeze(names.map(name=>'./assets/audio/sfx/'+name
 const blade=clips('dagger'),arcane=clips('magic'),fire=clips('fire'),blunt=clips('blunt');
 export const AUDIO_BANK=Object.freeze({
   select:clips('select'),upgrade:clips('upgrade'),reward:clips('chest'),
-  hit:clips('hit'),critical:clips('critical'),hurt:clips('hurt'),defeat:clips('defeat'),
+  hit:clips('hit'),critical:clips('critical'),hurt:clips('hurt'),
   xp:clips('xp_01','xp_02'),dash:clips('dash'),'pickup-heal':clips('heal'),
   step_normal:clips('step_01','step_02','step_03','step_04'),
   step_mud:clips('step_03','step_04'),step_ice:clips('step_01','step_02'),

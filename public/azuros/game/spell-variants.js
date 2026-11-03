@@ -2,7 +2,7 @@
 const spell=(name,summary,delivery,extra={})=>Object.freeze({name,summary,delivery,...extra});
 export const SPELLS=Object.freeze({
   bram:spell('Fracasse-sol','Un large coup au sol repousse les ennemis devant toi.','melee'),
-  lyra:spell('Lunes gardiennes','Deux lunes gardent un cercle fixe. Les ennemis entrés dans ce cercle subissent aussi leurs impacts.','orbit'),
+  lyra:spell('Lunes gardiennes','Deux lunes tournent à distance fixe et frappent les ennemis qu’elles touchent.','orbit'),
   kael:spell('Lame sylvestre','Un couteau de lancer traverse plusieurs cibles sur une longue ligne.','projectile',{style:'knife'}),
   nyx:spell('Éventail d’ombre','Trois dagues couvrent un éventail devant ta cible.','projectile'),
   poppy:spell('Braise explosive','Une boule de feu explose au contact et frappe le groupe.','projectile'),
@@ -24,7 +24,7 @@ export const SPELLS=Object.freeze({
   rocco:spell('Onde tectonique','Une onde de choc quitte tes pieds et avance vers la cible.','wave',{pattern:'wave',profile:{range:10,speed:7,count:1,cooldown:1.15,damage:33},travel:true,waveRadius:1.65}),
   plume:spell('Pluie de plumes','Trois plumes couvrent une large ligne de tir.','projectile',{style:'feather',profile:{count:3,range:13,cooldown:.82,damage:17},spread:.24,pierce:0,centered:true}),
   zeste:spell('Retours croisés','Deux lames s’écartent puis reviennent vers toi.','projectile',{profile:{count:2,range:8,cooldown:1.15,damage:16},spread:.4,centered:true}),
-  selene:spell('Orbites de givre','Trois lunes maintiennent un cercle plus large et ralentissent les intrus.','orbit',{profile:{count:3,range:2.95,damage:29,cooldown:.55},slow:.65,color:'#a0dcff'}),
+  selene:spell('Orbites de givre','Trois lunes tournent sur un cercle plus large et ralentissent les ennemis au contact.','orbit',{profile:{count:3,range:2.95,damage:29,cooldown:.55},slow:.65,color:'#a0dcff'}),
   baltha:spell('Bombes dispersées','Trois petites bombes tombent autour de la cible.','lob',{profile:{count:3,damage:25,cooldown:1.9},scatter:1.05,splash:1.65}),
   roncin:spell('Jardin de ronces','Des racines frappent à l’apparition, puis ralentissent et empoisonnent.','zone',{pattern:'zone',profile:{range:11,damage:8,cooldown:2.4},zoneRadius:2.3,zoneLife:2.2,tickInterval:.55,pull:0,poison:2,slow:.7,style:'bramble'}),
   piko:spell('Escadrille venimeuse','Un essaim rapide poursuit et empoisonne plusieurs cibles.','homing',{profile:{count:3,speed:14,range:16,damage:13,cooldown:1.35},poison:1.4}),

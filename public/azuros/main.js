@@ -23,9 +23,21 @@ const guestStorage={getItem:key=>localStorage.getItem(key),setItem:(key,value)=>
   if(currentUID)throw new Error('La carrière de compte est gérée par le serveur.');
   localStorage.setItem(key,value);
 }};
-const MUSIC_KEY='furie-survivors-music-v1';
-let musicEnabled=true;try{musicEnabled=localStorage.getItem(MUSIC_KEY)!=='false';}catch{}
-const career=createProgression({storage:guestStorage}),pressed=new Set(),soundscape=createSoundscape({musicEnabled});
+const MIX_KEY='azuros-audio-mix-v1';
+function initialMix(){
+  const defaults={effects:100,music:100};
+  try{
+    const saved=JSON.parse(localStorage.getItem(MIX_KEY));
+    for(const channel of Object.keys(defaults)){
+      if(Number.isFinite(saved?.[channel]))defaults[channel]=Math.max(0,Math.min(100,saved[channel]));
+    }
+    if(!saved&&localStorage.getItem('furie-survivors-music-v1')==='false')defaults.music=0;
+  }catch{}
+  return defaults;
+}
+const mix=initialMix();
+const career=createProgression({storage:guestStorage}),pressed=new Set();
+const soundscape=createSoundscape({effectsVolume:mix.effects/100,musicVolume:mix.music/100});
 try {
   for(let i=localStorage.length-1;i>=0;i--){
     const key=localStorage.key(i);
@@ -119,7 +131,7 @@ async function syncAccount(user){
 async function bootAccounts(){try{account=await createAccount({onChange:user=>{if(account)syncAccount(user);},onStatus:message=>onlineUI?.setStatus(message)});onlineUI?.setAccountReady();if(account.loaded)syncAccount(account.user);}catch(error){onlineUI?.setStatus(error.message);}}
 try{
   game=newGame(true);
-  ui=createUI({progression:career,isOnlineAccount:()=>Boolean(account?.user),reducedMotion,soundEnabled:sound,musicEnabled,getSaveStatus:()=>account?.user?(profileReady?'Carrière synchronisée avec ton compte':'Connexion à ta carrière…'):'Progression sur cet appareil · connexion disponible',
+  ui=createUI({progression:career,isOnlineAccount:()=>Boolean(account?.user),reducedMotion,soundEnabled:sound,audioMix:mix,getSaveStatus:()=>account?.user?(profileReady?'Carrière synchronisée avec ton compte':'Connexion à ta carrière…'):'Progression sur cet appareil · connexion disponible',
     onStart:async()=>{unlockAudio();clearInput();if(!isCurrentSession(currentUID,authGeneration))return;if(currentUID){if(!profileReady||!multiplayer){ui.showToast('Patiente pendant la synchronisation de ta carrière.');return;}if(multiplayer.room){onlineUI.openLobby();return;}await multiplayer.create(1);return;}settlement=null;resumeAfterModal=false;game=newGame();syncSpawnBounds(true);game.start();updateUI();soundscape.play('start');},
     onPause:()=>{clearInput();game.pause();updateUI();},
     onResume:()=>{clearInput();game.resume();updateUI();},
@@ -135,7 +147,12 @@ try{
     onReveal:rarity=>soundscape.play('reveal',rarity),
     onUIClick:()=>soundscape.play('select'),
     onSoundToggle:enabled=>{sound=enabled;try{localStorage.setItem(SOUND_KEY,String(sound));}catch{}if(!soundscape.setEnabled(enabled)&&enabled){sound=false;ui.showToast('Le son est indisponible dans ce navigateur.');}if(sound){soundscape.primeMusic();soundscape.play('enable');}return sound;},
-    onMusicToggle:enabled=>{musicEnabled=enabled;try{localStorage.setItem(MUSIC_KEY,String(enabled));}catch{}soundscape.setMusicEnabled(enabled);if(enabled)unlockAudio();},
+    onVolumeChange:(channel,volume)=>{
+      mix[channel]=volume;
+      try{localStorage.setItem(MIX_KEY,JSON.stringify(mix));}catch{}
+      soundscape.setVolume(channel,volume/100);
+      if(channel==='music'&&volume>0)soundscape.primeMusic();
+    },
     onComfortToggle:enabled=>{reducedMotion=Boolean(enabled);try{localStorage.setItem(COMFORT_KEY,String(reducedMotion));}catch{}view?.setReducedMotion?.(reducedMotion);},
     onImportSave:json=>{if(currentUID||account?.user)return{ok:false,error:'L’import de sauvegardes est réservé au mode invité.'};if(game.state.phase!=='menu')return{ok:false,error:'Reviens au camp pour importer.'};const result=career.importSave(json);handleMutation(result);if(result.ok)rebuildCamp();return result;},
     onModalOpen:()=>{clearInput();if(!game.online&&game.state.phase==='playing'){resumeAfterModal=true;game.pause();updateUI();}},

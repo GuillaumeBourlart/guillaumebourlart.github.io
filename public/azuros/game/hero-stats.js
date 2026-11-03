@@ -16,6 +16,15 @@ export const STAT_DEFINITIONS=Object.freeze({
 });
 export const STAT_KEYS=Object.freeze(Object.keys(STAT_DEFINITIONS));
 
+const ROLE_AFFINITIES={
+  balanced:['cadence','reach'],guardian:['armor','vitality'],ranger:['precision','reach'],
+  skirmisher:['mobility','cadence'],arcanist:['power','reach'],controller:['reach','recovery'],
+  engineer:['reach','cadence'],brawler:['power','vitality'],berserker:['power','cadence']
+};
+const WEAPON_AFFINITIES={melee:'power',orbit:'cadence',projectile:'precision',chain:'reach',wave:'reach',
+  beam:'precision',lob:'power',homing:'cadence',zone:'reach',cone:'cadence',trap:'power',radial:'reach'};
+export const AFFINITY_BONUS=.25;
+
 export const RARITY_POWER=Object.freeze({
   common:Object.freeze({damage:1,hp:1,defense:0,luck:0}),
   uncommon:Object.freeze({damage:1.05,hp:1.05,defense:.025,luck:.004}),
@@ -75,6 +84,12 @@ const LEGACY_IDENTITIES=Object.freeze({
 
 export const HERO_IDENTITIES=Object.freeze({...LEGACY_IDENTITIES,...Object.fromEntries(HEROES.filter(h=>!LEGACY_IDENTITIES[h.id]).map(h=>[h.id,identity(h.role||'balanced','Instinct de '+h.name,'Une espèce avec ses propres forces de départ et son arme innée.')]))});
 
+export function trainingAffinities(id){
+  const hero=getHero(id),role=HERO_IDENTITIES[hero.id].role;
+  const affinities=ROLE_AFFINITIES[role]||ROLE_AFFINITIES.balanced;
+  return [...new Set([...affinities,WEAPON_AFFINITIES[hero.spell?.delivery]].filter(Boolean))];
+}
+
 export const HERO_SHAPES=Object.freeze({
   bram:Object.freeze({form:'golem',modelScale:1.18,bodyRadius:.56}),
   momo:Object.freeze({form:'beast',modelScale:1.12,bodyRadius:.54}),
@@ -106,12 +121,13 @@ export function legacyStatPoints(level=1){
 }
 export function heroLevelFromStats(points={}){return clamp(1+Object.values(normalizeStatPoints(points)).reduce((sum,value)=>sum+value,0),1,MAX_HERO_LEVEL);}
 
-export function getTrainingBonuses(pointsOrLevel={}){
+export function getTrainingBonuses(pointsOrLevel={},heroId){
   const points=typeof pointsOrLevel==='number'?legacyStatPoints(pointsOrLevel):normalizeStatPoints(pointsOrLevel);
+  const affinities=heroId?trainingAffinities(heroId):[],gain=(key,rate)=>round(rate*points[key]*(affinities.includes(key)?1+AFFINITY_BONUS:1));
   return{
-    damage:round(1+.035*points.power),maxHp:round(1+.03*points.vitality),defense:round(.008*points.armor),
-    cadence:round(1+.025*points.cadence),moveSpeed:round(1+.018*points.mobility),crit:round(.012*points.precision),
-    area:round(1+.022*points.reach),regen:round(.12*points.recovery),pickupRadius:round(.45*points.magnetism),luck:round(.0125*points.fortune),
+    damage:1+gain('power',.035),maxHp:1+gain('vitality',.03),defense:gain('armor',.008),
+    cadence:1+gain('cadence',.025),moveSpeed:1+gain('mobility',.018),crit:gain('precision',.012),
+    area:1+gain('reach',.022),regen:gain('recovery',.12),pickupRadius:gain('magnetism',.45),luck:gain('fortune',.0125),
     points,level:heroLevelFromStats(points)
   };
 }
@@ -129,7 +145,7 @@ export function getHeroBaseStats(id){
 }
 
 export function getHeroCombatStats(id,pointsOrLevel={}){
-  const base=getHeroBaseStats(id),training=getTrainingBonuses(pointsOrLevel),damage=round(base.damage*training.damage),moveSpeed=round(base.moveSpeed*training.moveSpeed);
+  const base=getHeroBaseStats(id),training=getTrainingBonuses(pointsOrLevel,id),damage=round(base.damage*training.damage),moveSpeed=round(base.moveSpeed*training.moveSpeed);
   return{
     ...base,level:training.level,training,statPoints:{...training.points},damage,power:Math.round(damage*100),
     baseMaxHp:base.maxHp,maxHp:Math.round(base.maxHp*training.maxHp),defense:round(clamp(base.defense+training.defense,0,.45)),

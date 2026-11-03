@@ -11,3 +11,11 @@ export function cooperativePacing(seconds,players=1){
     speeds:{slime:5.1,runner:6.0,wisp:5.5,spitter:4.5,brute:4.0,boss:3.25},projectilesPerPlayer:Math.max(100,160-15*(n-1))
   };
 }
+
+export function siegePerSide(seconds,players){
+  return Math.ceil((2+Math.min(3,Math.floor(Math.max(0,seconds-90)/120)))*(1+.28*(players-1)));
+}
+
+export function openingDamageFactor(seconds,players){
+  return players===1?curve(seconds,[[0,.68],[60,.76],[150,1]]):curve(seconds,[[0,.88],[90,1]]);
+}

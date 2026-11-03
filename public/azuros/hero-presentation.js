@@ -1,5 +1,5 @@
 import {RARITIES,MAX_STAT_POINTS,getHero} from './game/catalog.js';
-import {getHeroCombatStats,STAT_KEYS} from './game/hero-stats.js';
+import {getHeroCombatStats,STAT_KEYS,trainingAffinities} from './game/hero-stats.js';
 
 export const RARITY_ORDER=Object.freeze(['common','uncommon','rare','epic','legendary','mythic']);
 export function rarityRank(rarity){return Math.max(1,RARITY_ORDER.indexOf(rarity)+1);}
@@ -14,5 +14,5 @@ export function trainingPreview(heroId,points,key){
   if(!STAT_KEYS.includes(key))throw new Error('Unknown training stat');
   const hero=getHero(heroId),current=getHeroCombatStats(hero.id,points),rank=current.statPoints[key],max=rank>=MAX_STAT_POINTS;
   const next=max?current:getHeroCombatStats(hero.id,{...current.statPoints,[key]:rank+1});
-  return {rank,max,current:statValue(current,key),next:statValue(next,key),base:statValue(getHeroCombatStats(hero.id),key)};
+  return {rank,max,affinity:trainingAffinities(hero.id).includes(key),current:statValue(current,key),next:statValue(next,key),base:statValue(getHeroCombatStats(hero.id),key)};
 }

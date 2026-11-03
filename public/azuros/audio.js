@@ -1,12 +1,12 @@
 import {AUDIO_BANK} from './audio-bank.js';
 import {createMusic} from './music.js';
-const sampleLevel={select:.09,xp:.13,orbit:.09,defeat:.12,hit:.14,critical:.23,hurt:.22,summon:.31,'rift-start':.32};
+const sampleLevel={select:.09,xp:.13,orbit:.09,hit:.14,critical:.23,hurt:.10,summon:.31,'rift-start':.32};
 // Original sound design, unlocked by a user gesture. Recorded replacements
 // are optional and load only when configured in audio-bank.js.
 // This adapter observes the simulation; it never changes game rules.
-export function createSoundscape({bank=AUDIO_BANK,musicEnabled=true}={}) {
-  let context=null,master=null,wind=null,windFilter=null,enabled=false,active=true;
-  let suspendTimer=null,nodes=0,lastRun='',lastPhase='',lastHP=0,lastKills=0,lastDash=0,lastAttack=0,lastCollected=0,lastOrbit=0;
+export function createSoundscape({bank=AUDIO_BANK,effectsVolume=1,musicVolume=1}={}) {
+  let context=null,master=null,effects=null,wind=null,windFilter=null,enabled=false,active=true;
+  let suspendTimer=null,nodes=0,lastRun='',lastPhase='',lastHP=0,lastDash=0,lastAttack=0,lastCollected=0,lastOrbit=0;
   let nextAmbient=0,nextStep=0,ambientIndex=0,seen=new Set(),noiseBuffer=null,ambience=null,ambienceKey='';
   const samples=new Map(),sampleIndices=new Map();
   const gates=new Map();
@@ -16,6 +16,7 @@ export function createSoundscape({bank=AUDIO_BANK,musicEnabled=true}={}) {
     if(context)return true;
     const Audio=window.AudioContext||window.webkitAudioContext;if(!Audio)return false;
     context=new Audio();master=context.createGain();master.gain.value=0;
+    effects=context.createGain();effects.gain.value=effectsVolume;effects.connect(master);
     const limiter=context.createDynamicsCompressor?.();
     if(limiter){limiter.threshold.value=-14;limiter.knee.value=18;limiter.ratio.value=5;limiter.attack.value=.004;limiter.release.value=.12;master.connect(limiter);limiter.connect(context.destination);}else master.connect(context.destination);
     music=createMusic(context,master);
@@ -23,7 +24,7 @@ export function createSoundscape({bank=AUDIO_BANK,musicEnabled=true}={}) {
     let brown=0;for(let i=0;i<data.length;i++){brown=(brown+(Math.random()*2-1)*.018)/1.018;data[i]=brown*3.3;}
     wind=context.createBufferSource();wind.buffer=buffer;wind.loop=true;
     windFilter=context.createBiquadFilter();windFilter.type='lowpass';windFilter.frequency.value=450;
-    const gain=context.createGain();gain.gain.value=.026;wind.connect(windFilter);windFilter.connect(gain);gain.connect(master);wind.start();
+    const gain=context.createGain();gain.gain.value=.026;wind.connect(windFilter);windFilter.connect(gain);gain.connect(effects);wind.start();
     noiseBuffer=context.createBuffer(1,Math.ceil(context.sampleRate*.6),context.sampleRate);
     const noise=noiseBuffer.getChannelData(0);for(let i=0;i<noise.length;i++)noise[i]=Math.random()*2-1;
     const owner=context,loads=new Map();
@@ -43,7 +44,7 @@ export function createSoundscape({bank=AUDIO_BANK,musicEnabled=true}={}) {
     const at=context.currentTime+delay,osc=context.createOscillator(),gain=context.createGain();
     const stereo=context.createStereoPanner?.();osc.type=type;osc.frequency.setValueAtTime(frequency,at);
     osc.frequency.exponentialRampToValueAtTime(Math.max(30,end),at+duration);envelope(gain,at,duration,volume);
-    osc.connect(gain);if(stereo){stereo.pan.value=clamp(pan,-1,1);gain.connect(stereo);stereo.connect(master);}else gain.connect(master);
+    osc.connect(gain);if(stereo){stereo.pan.value=clamp(pan,-1,1);gain.connect(stereo);stereo.connect(effects);}else gain.connect(effects);
     nodes++;osc.start(at);osc.stop(at+duration+.01);osc.onended=()=>{nodes--;osc.disconnect();gain.disconnect();stereo?.disconnect();};
   }
   function sample(name,{volume=.2,pan=0,rate=1}={}){
@@ -52,7 +53,7 @@ export function createSoundscape({bank=AUDIO_BANK,musicEnabled=true}={}) {
     const index=(sampleIndices.get(name)||0)%choices.length;sampleIndices.set(name,index+1);
     const source=context.createBufferSource(),gain=context.createGain(),stereo=context.createStereoPanner?.();
     source.buffer=choices[index];source.playbackRate.value=rate;gain.gain.value=volume;source.connect(gain);
-    if(stereo){stereo.pan.value=clamp(pan,-1,1);gain.connect(stereo);stereo.connect(master);}else gain.connect(master);
+    if(stereo){stereo.pan.value=clamp(pan,-1,1);gain.connect(stereo);stereo.connect(effects);}else gain.connect(effects);
     nodes++;source.onended=()=>{nodes--;source.disconnect();gain.disconnect();stereo?.disconnect();};source.start();return true;
   }
   function updateAmbience(biome){
@@ -60,14 +61,14 @@ export function createSoundscape({bank=AUDIO_BANK,musicEnabled=true}={}) {
     if(key===ambienceKey)return;
     if(ambience){ambience.gain.gain.setTargetAtTime(.0001,context.currentTime,.18);ambience.source.stop(context.currentTime+.8);ambience=null;ambienceKey='';}
     if(!buffer||nodes>=28)return;
-    const source=context.createBufferSource(),gain=context.createGain();source.buffer=buffer;source.loop=true;gain.gain.value=.0001;source.connect(gain);gain.connect(master);gain.gain.setTargetAtTime(.09,context.currentTime,.35);nodes++;source.onended=()=>{nodes--;source.disconnect();gain.disconnect();};source.start();ambience={source,gain};ambienceKey=key;
+    const source=context.createBufferSource(),gain=context.createGain();source.buffer=buffer;source.loop=true;gain.gain.value=.0001;source.connect(gain);gain.connect(effects);gain.gain.setTargetAtTime(.09,context.currentTime,.35);nodes++;source.onended=()=>{nodes--;source.disconnect();gain.disconnect();};source.start();ambience={source,gain};ambienceKey=key;
   }
   function noise(duration=.12,{frequency=900,end=frequency,volume=.065,pan=0,type='bandpass'}={}){
     if(!enabled||!active||context?.state!=='running'||nodes>=28||!noiseBuffer)return;
     const at=context.currentTime,source=context.createBufferSource(),filter=context.createBiquadFilter(),gain=context.createGain(),stereo=context.createStereoPanner?.();
     source.buffer=noiseBuffer;filter.type=type;filter.frequency.setValueAtTime(frequency,at);filter.frequency.exponentialRampToValueAtTime(Math.max(40,end),at+duration);if(filter.Q)filter.Q.value=.7;
     envelope(gain,at,duration,volume);source.connect(filter);filter.connect(gain);
-    if(stereo){stereo.pan.value=clamp(pan,-1,1);gain.connect(stereo);stereo.connect(master);}else gain.connect(master);
+    if(stereo){stereo.pan.value=clamp(pan,-1,1);gain.connect(stereo);stereo.connect(effects);}else gain.connect(effects);
     nodes++;source.onended=()=>{nodes--;source.disconnect();filter.disconnect();gain.disconnect();stereo?.disconnect();};source.start(at);source.stop(at+duration+.01);
   }
   function gate(id,seconds){const now=context?.currentTime||0;if(now<(gates.get(id)||0))return false;gates.set(id,now+seconds);return true;}
@@ -94,10 +95,9 @@ export function createSoundscape({bank=AUDIO_BANK,musicEnabled=true}={}) {
       case 'rift-start':if(gate('rift-start',1)){note(110,.7,{end:55,type:'triangle',volume:.065});note(220,.5,{end:146.83,delay:.15,volume:.035});}break;
       case 'rift-victory':if(gate('rift-victory',1))chord([293.66,440,587.33,739.99,880],.065,.095);break;
       case 'dash':if(gate('dash',.3)){noise(.18,{frequency:1800,end:240,volume:.11});note(420,.16,{end:80,type:'triangle',volume:.05});}break;
-      case 'hurt':if(gate('hurt',.22)){noise(.11,{frequency:360,volume:.12});note(95,.19,{end:42,type:'triangle',volume:.12});}break;
+      case 'hurt':if(gate('hurt',.22)){noise(.11,{frequency:360,volume:.052});note(95,.19,{end:42,type:'triangle',volume:.05});}break;
       case 'hit':noise(.055,{frequency:730,end:320,volume:.075,pan});note(350,.055,{end:150,volume:.025,pan});break;
       case 'critical':noise(.075,{frequency:1900,end:450,volume:.09,pan});note(620,.12,{end:300,type:'triangle',volume:.045,pan});break;
-      case 'defeat':noise(.1,{frequency:530,end:130,volume:.055,pan});note(240,.075,{end:130,type:'triangle',volume:.038,pan});break;
       case 'xp':note(880+(lastCollected%4)*110,.075,{end:1320,volume:.027,pan});break;
       case 'orbit':noise(.11,{frequency:1250,end:500,volume:.026,pan});note(630,.12,{end:470,volume:.009,pan});break;
       case 'attack':{
@@ -124,7 +124,7 @@ export function createSoundscape({bank=AUDIO_BANK,musicEnabled=true}={}) {
   }
   function mixMusic(){
     const inCamp=musicPhase==='menu',volume=inCamp?.35:musicPhase==='playing'?.28:.12;
-    music?.mix(inCamp?'camp':'expedition',enabled&&active&&musicEnabled?volume:0);
+    music?.mix(inCamp?'camp':'expedition',enabled&&active?volume*musicVolume:0);
   }
   function setEnabled(value){
     enabled=Boolean(value);clearTimeout(suspendTimer);
@@ -133,7 +133,7 @@ export function createSoundscape({bank=AUDIO_BANK,musicEnabled=true}={}) {
       if(!context)return true;
       if(enabled&&active){context.resume().catch(()=>{});master.gain.cancelScheduledValues(context.currentTime);master.gain.setTargetAtTime(.42,context.currentTime,.06);nextAmbient=context.currentTime+1.5;}
       else{master.gain.setTargetAtTime(.0001,context.currentTime,.045);suspendTimer=setTimeout(()=>{if(!enabled||!active)context.suspend().catch(()=>{});},250);}
-      mixMusic();if(enabled&&active&&musicEnabled)music?.retry();
+      mixMusic();if(enabled&&active&&musicVolume>0)music?.retry();
       return true;
     }catch{enabled=false;return false;}
   }
@@ -141,8 +141,8 @@ export function createSoundscape({bank=AUDIO_BANK,musicEnabled=true}={}) {
   function update(state){
     if(!state)return;
     if(state.phase!==musicPhase){musicPhase=state.phase;mixMusic();}
-    if(state.runId!==lastRun){lastRun=state.runId;lastHP=state.player.hp;lastKills=state.kills;lastDash=0;lastAttack=state.attackCount||0;lastCollected=state.collected||0;lastOrbit=state.t||0;seen.clear();lastPhase=state.phase;}
-    if(!enabled||!active||!context){lastHP=state.player.hp;lastKills=state.kills;lastAttack=state.attackCount||0;lastCollected=state.collected||0;return;}
+    if(state.runId!==lastRun){lastRun=state.runId;lastHP=state.player.hp;lastDash=0;lastAttack=state.attackCount||0;lastCollected=state.collected||0;lastOrbit=state.t||0;seen.clear();lastPhase=state.phase;}
+    if(!enabled||!active||!context){lastHP=state.player.hp;lastAttack=state.attackCount||0;lastCollected=state.collected||0;return;}
     const now=context.currentTime,p=state.player,playing=state.phase==='playing';
     if(lastPhase!==state.phase){if(state.phase==='upgrade')play('level');if(state.phase==='lost')play('death');if(state.phase==='won')play('extract');lastPhase=state.phase;}
     // A victory opens the reward screen in the same simulation step. Its cue
@@ -152,8 +152,7 @@ export function createSoundscape({bank=AUDIO_BANK,musicEnabled=true}={}) {
     if(playing){
       if(p.hp<lastHP)play('hurt');
       if(p.dashTime>0&&lastDash<=0)play('dash');
-      if(Math.hypot(p.vx,p.vz)>2&&now>nextStep&&p.dashTime<=0){nextStep=now+(p.terrain==='mud'?.32:.25);if(!sample('step_'+(p.terrain||'normal'),{volume:p.terrain==='mud'?.085:.115,rate:p.terrain==='mud'?.78:p.terrain==='ice'?1.22:1})){noise(.045,{frequency:p.terrain==='ice'?2000:p.terrain==='mud'?220:550,volume:.027});note(75,.045,{end:40,type:'triangle',volume:.02});}}
-      if(state.kills>lastKills&&gate('defeat',.13))play('defeat',{pan:Math.sin(state.kills)*.25});
+      if(Math.hypot(p.vx,p.vz)>2&&now>nextStep&&p.dashTime<=0){nextStep=now+(p.terrain==='mud'?.32:.25);if(!sample('step_'+(p.terrain||'normal'),{volume:p.terrain==='mud'?.034:.045,rate:p.terrain==='mud'?.78:p.terrain==='ice'?1.22:1})){noise(.045,{frequency:p.terrain==='ice'?2000:p.terrain==='mud'?220:550,volume:.012});note(75,.045,{end:40,type:'triangle',volume:.009});}}
       if((state.attackCount||0)>lastAttack&&gate('attack',.09))play('attack',{family:state.attackFamily});
       if(state.attackFamily==='orbit'&&state.t-lastOrbit>Math.max(.23,1.1/(state.stats?.cadence||1))){lastOrbit=state.t;play('orbit',{pan:Math.sin(state.t*3)*.3});}
       if((state.collected||0)>lastCollected&&gate('xp',.075))play('xp');
@@ -180,7 +179,11 @@ export function createSoundscape({bank=AUDIO_BANK,musicEnabled=true}={}) {
       }else if(biome==='crystal'){note([587.33,739.99,880][ambientIndex%3],.95,{volume:.025,pan:-.4});}
       else if(biome==='swamp'){note(196,.5,{end:174,volume:.019,pan:.35});note(392,.22,{delay:.18,volume:.01});}
     }
-    lastHP=p.hp;lastKills=state.kills;lastDash=p.dashTime;lastAttack=state.attackCount||0;lastCollected=state.collected||0;
+    lastHP=p.hp;lastDash=p.dashTime;lastAttack=state.attackCount||0;lastCollected=state.collected||0;
   }
-  return{setEnabled,setActive,primeMusic(){if(enabled&&active&&musicEnabled)music?.prime();},setMusicEnabled(value){musicEnabled=Boolean(value);mixMusic();},play,update,dispose(){clearTimeout(suspendTimer);music?.dispose();music=null;wind?.stop();ambience?.source.stop();ambience=null;ambienceKey='';context?.close().catch(()=>{});context=null;samples.clear();noiseBuffer=null;}};
+  return{setEnabled,setActive,primeMusic(){if(enabled&&active&&musicVolume>0)music?.prime();},setVolume(channel,value){
+    const volume=clamp(Number(value)||0,0,1);
+    if(channel==='music'){musicVolume=volume;mixMusic();}
+    if(channel==='effects'){effectsVolume=volume;if(effects){effects.gain.cancelScheduledValues(context.currentTime);effects.gain.setTargetAtTime(volume,context.currentTime,.04);}}
+  },play,update,dispose(){clearTimeout(suspendTimer);music?.dispose();music=null;wind?.stop();ambience?.source.stop();ambience=null;ambienceKey='';context?.close().catch(()=>{});context=null;samples.clear();noiseBuffer=null;}};
 }

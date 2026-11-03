@@ -189,7 +189,7 @@ export function createProgression({storage=undefined,rng=Math.random}={}) {
   function heroStatPoints(id){return validHero(id)&&own(state.owned,id)?normalizeStatPoints(state.owned[id].statPoints):emptyStatPoints();}
   function heroLevel(id) { return validHero(id)&&own(state.owned,id)?heroLevelFromStats(state.owned[id].statPoints):0; }
   function heroBonuses(id) {
-    return getTrainingBonuses(heroStatPoints(id));
+    return getTrainingBonuses(heroStatPoints(id),id);
   }
   function heroStats(id){return getHeroCombatStats(id,heroStatPoints(id));}
   function upgradeCost(id,statKey) {

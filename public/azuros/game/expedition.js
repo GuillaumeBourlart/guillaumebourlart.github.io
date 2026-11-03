@@ -10,7 +10,10 @@ export function createExpedition({roster,seed=12345,runId='expedition'}={}){
   const actors=new Map(),inputs=new Map(),bounds=new Map(),returnPositions=new Map();
   let nextID=1,time=0,phase='menu',pausedBy=null,root,wasInRift=false,accumulator=0;
   const players=()=>[...actors.values()].filter(a=>!a.departed).map(a=>a.game.state.player);
-  const views=()=>players().filter(p=>p.hp>0).map(p=>{const b=bounds.get(p.playerId);return b?{minX:p.x+b.minX,maxX:p.x+b.maxX,minZ:p.z+b.minZ,maxZ:p.z+b.maxZ}:{minX:p.x-24,maxX:p.x+24,minZ:p.z-27,maxZ:p.z+22};});
+  const views=()=>players().filter(p=>p.hp>0).map(p=>{
+    const b=bounds.get(p.playerId)||{minX:-24,maxX:24,minZ:-27,maxZ:22};
+    return{playerId:p.playerId,minX:p.x+b.minX,maxX:p.x+b.maxX,minZ:p.z+b.minZ,maxZ:p.z+b.maxZ};
+  });
   function shareReward(source,sourceId){
     for(const [id,a]of actors)if(id!==sourceId&&!a.departed){
       a.game.coop.grant(source);
@@ -81,7 +84,16 @@ export function createExpedition({roster,seed=12345,runId='expedition'}={}){
   }
   function step(dt=STEP){if(!Number.isFinite(dt)||dt<=0||phase!=='playing')return;accumulator=Math.min(.1,accumulator+Math.min(.1,dt));while(accumulator+1e-10>=STEP&&phase==='playing'){accumulator-=STEP;tick();}}
   function input(id,value){if(!actors.has(id)||!value||typeof value!=='object')return false;const n=v=>Number.isFinite(v)?Math.max(-1,Math.min(1,v)):0;inputs.set(id,{x:n(value.x),z:n(value.z),dash:Boolean(value.dash)||Boolean(inputs.get(id)?.dash),moveFrame:value.moveFrame!==false});return true;}
-  function setBounds(id,value){const a=actors.get(id);if(!a||!value||!['minX','maxX','minZ','maxZ'].every(k=>Number.isFinite(value[k])))return false;const p=a.game.state.player,b={minX:value.minX-p.x,maxX:value.maxX-p.x,minZ:value.minZ-p.z,maxZ:value.maxZ-p.z};if(b.minX>=b.maxX||b.minZ>=b.maxZ||b.minX>0||b.maxX<0||b.minZ>0||b.maxZ<0||Math.max(...Object.values(b).map(Math.abs))>65)return false;bounds.set(id,b);return true;}
+  function setBounds(id,value){
+    const actor=actors.get(id),edges=['minX','maxX','minZ','maxZ'];
+    if(!actor||!value||!edges.every(key=>Number.isFinite(value[key])))return false;
+    const p=actor.game.state.player,offset={minX:value.minX-p.x,maxX:value.maxX-p.x,minZ:value.minZ-p.z,maxZ:value.maxZ-p.z};
+    if(offset.minX>=0||offset.maxX<=0||offset.minZ>=0||offset.maxZ<=0||edges.some(key=>Math.abs(offset[key])>65))return false;
+    // A client's claimed camera must not create an arbitrarily large spawn exclusion.
+    const limit=(n,min,max)=>Math.max(min,Math.min(max,n));
+    bounds.set(id,{minX:limit(offset.minX,-34,-7),maxX:limit(offset.maxX,7,34),minZ:limit(offset.minZ,-34,-9),maxZ:limit(offset.maxZ,7,34)});
+    return true;
+  }
   function choose(id,key,version){const a=actors.get(id);if(phase!=='upgrade'||!a||version!==a.offerVersion)return false;const ok=a.game.chooseUpgrade(key);if(ok){a.offerVersion++;a.offerKey='';offers();}return ok;}
   function reroll(id,version){const a=actors.get(id);if(phase!=='upgrade'||!a||version!==a.offerVersion)return false;const ok=a.game.reroll();if(ok){a.offerVersion++;a.offerKey='';offers();}return ok;}
   function pause(id){if(phase!=='playing')return false;phase='paused';pausedBy=id;inputs.clear();return true;}
