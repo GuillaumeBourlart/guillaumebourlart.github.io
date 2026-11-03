@@ -274,12 +274,14 @@ body[data-reduced-motion="true"] .summon-reveal *,body[data-reduced-motion="true
 @media(prefers-reduced-motion:reduce){.ritual-portal i,.ritual-info,.ritual-beam,.ritual-portal{animation:none;transition:none}}
 
 /* Combat danger and defeat presentation. These layers are viewport-bound, so
-   the red edge remains proportional on phones, ultrawide screens and rotation. */
-.danger-overlay{--danger-alpha:.5;position:fixed;inset:0;z-index:12;pointer-events:none;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;padding:max(78px,calc(env(safe-area-inset-bottom) + 72px));color:#ffe7df;text-shadow:0 2px 12px #2b0308;box-shadow:inset 0 0 clamp(48px,9vw,150px) clamp(7px,1.6vw,28px) rgb(196 19 34 / var(--danger-alpha));background:radial-gradient(ellipse at center,transparent 47%,rgb(104 0 13 / calc(var(--danger-alpha) * .48)) 100%);animation:danger-breathe 1.05s ease-in-out infinite}
+   the red edge remains proportional on phones, ultrawide screens and rotation.
+   The heart and its label sit above the bottom HUD stack: power strip (to 103px),
+   toasts (to 157px) and zone pill (to 167px), which are drawn above this layer. */
+.danger-overlay{--danger-alpha:.5;position:fixed;inset:0;z-index:12;pointer-events:none;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;padding:16px 16px max(184px,calc(env(safe-area-inset-bottom) + 178px));color:#ffe7df;text-shadow:0 2px 12px #2b0308;box-shadow:inset 0 0 clamp(48px,9vw,150px) clamp(7px,1.6vw,28px) rgb(196 19 34 / var(--danger-alpha));background:radial-gradient(ellipse at center,transparent 47%,rgb(104 0 13 / calc(var(--danger-alpha) * .48)) 100%);animation:danger-breathe 1.05s ease-in-out infinite}
 .danger-overlay:before{content:"";position:absolute;inset:0;border:clamp(3px,.7vw,11px) solid rgb(255 70 78 / calc(var(--danger-alpha) * .62))}
 .critical-heart{font-size:clamp(27px,4vw,48px);line-height:1;color:#ff5360;filter:drop-shadow(0 0 12px #ff152e);animation:critical-heartbeat .86s ease-in-out infinite}
 .danger-overlay>strong{margin-top:7px;font-size:clamp(9px,1.1vw,13px);letter-spacing:.2em}
-.danger-overlay[data-mode=downed]{justify-content:center;background:radial-gradient(circle,transparent 15%,#28050f99 100%);box-shadow:inset 0 0 clamp(60px,12vw,180px) clamp(12px,2vw,34px) rgb(130 0 20 / .65);animation:none}
+.danger-overlay[data-mode=downed]{justify-content:center;padding:16px;background:radial-gradient(circle,transparent 15%,#28050f99 100%);box-shadow:inset 0 0 clamp(60px,12vw,180px) clamp(12px,2vw,34px) rgb(130 0 20 / .65);animation:none}
 .danger-overlay[data-mode=downed] .critical-heart{display:none}
 .danger-overlay[data-mode=downed]>strong{padding:12px 18px;border:1px solid #ff9a9a66;border-radius:999px;background:#210a16cc;font-size:clamp(10px,1.5vw,16px)}
 @keyframes critical-heartbeat{0%,24%,100%{transform:scale(.9)}34%{transform:scale(1.24)}43%{transform:scale(.98)}53%{transform:scale(1.13)}67%{transform:scale(.92)}}
@@ -295,8 +297,17 @@ body[data-reduced-motion="true"] .summon-reveal *,body[data-reduced-motion="true
 .death-cinematic[data-word=true] strong,.death-cinematic[data-word=true] span{opacity:1;transform:scale(1)}
 
 @media(max-width:650px){
-  .danger-overlay{padding:max(104px,calc(env(safe-area-inset-bottom) + 96px))}
   .team-waiting{top:58%;padding:15px 18px}.team-waiting>strong{font-size:12px}
+}
+/* Portrait phones: the free band lies between the power strip (to 47px) and the
+   objective card (from 136px), both offset by the safe area. */
+@media(max-width:700px) and (orientation:portrait){
+  .danger-overlay{padding-bottom:calc(64px + env(safe-area-inset-bottom))}
+}
+/* Short landscape screens have no free band below the zone pill and toasts, so
+   the alert stays just above the power strip and the controls. */
+@media(max-height:520px) and (orientation:landscape){
+  .danger-overlay{padding-bottom:max(78px,calc(env(safe-area-inset-bottom) + 72px))}
 }
 body[data-reduced-motion=true] .danger-overlay,body[data-reduced-motion=true] .critical-heart{animation:none}
 body[data-reduced-motion=true] .death-cinematic strong,body[data-reduced-motion=true] .death-cinematic span{transition:none}
