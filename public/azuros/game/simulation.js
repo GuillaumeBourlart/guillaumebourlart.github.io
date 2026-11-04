@@ -2,6 +2,7 @@
 import { getHero, MAX_HERO_LEVEL } from './catalog.js';
 import { getHeroBaseStats, getHeroCombatStats } from './hero-stats.js';
 import {enemyCreature} from './creatures.js';
+import {shooterShot,guardianShot,rangedPacing,SHOT_RANGE} from './enemy-shots.js';
 import {XP_ACTIVATION_DELAY,CORPSE_LIFETIME,experienceReady} from './feedback-timing.js';
 import {attackTiming} from './attack-timing.js';
 import {cooperativePacing,openingDamageFactor,siegePerSide} from './coop-pacing.js';
@@ -90,7 +91,7 @@ export function createGame({seed=12345,heroId='lyra',heroLevel=1,bonuses={},runI
   let cardRandom,recentOffers;
   let random,nextID,ticks,accumulator,pendingDash,spawnClock,spawnNumber,nextSiegeAt,siegeWarned,nextEliteAt,attackClock,novaClock,pendingUpgrades,pausedFrom,dashX,dashZ,orbitAngle,orbitRadius,chainReady,burstReady,riftOfferRetryAt,riftReturn;
   let spawnBounds=null,worldData,currentChunkKey='',indexedObstacles,indexedZones,indexedProps,propsDirty=false,gemsOverflow=false;
-  const enemyData=new Map(),shotData=new Map(),upgradeCounts=new Map(),obstacleBins=new Map(),zoneBins=new Map(),propBins=new Map(),knownPOIs=new Set(),obstacleNeighborhoods=new Map(),zoneNeighborhoods=new Map();
+  const enemyData=new Map(),shotData=new Map(),volleyAt=new Map(),upgradeCounts=new Map(),obstacleBins=new Map(),zoneBins=new Map(),propBins=new Map(),knownPOIs=new Set(),obstacleNeighborhoods=new Map(),zoneNeighborhoods=new Map();
   const id=()=>cooperative?.nextId?cooperative.nextId():nextID++;
   const party=()=>cooperative?.players?.().filter(p=>p.hp>0)||[state.player];
   const pacing=()=>cooperativePacing(state.t,cooperative?.population?.()||1);
@@ -122,7 +123,7 @@ export function createGame({seed=12345,heroId='lyra',heroLevel=1,bonuses={},runI
     const c=worldChunkAt(x,z),chunks=[],seen=new Set(),centers=cooperative?[{x,z},...(cooperative.players?.()||[])]:[{x,z}];for(const center of centers){const pc=worldChunkAt(center.x,center.z);for(let ring=0;ring<=ACTIVE_CHUNK_RADIUS;ring++)for(let dz=-ring;dz<=ring;dz++)for(let dx=-ring;dx<=ring;dx++)if(Math.max(Math.abs(dx),Math.abs(dz))===ring){const key=(pc.x+dx)+':'+(pc.z+dz);if(!seen.has(key)){seen.add(key);chunks.push(worldData.getChunk(pc.x+dx,pc.z+dz));}}}
     return{obstacles:chunks.flatMap(c=>c.obstacles),pois:chunks.flatMap(c=>c.pois),zones:chunks.flatMap(c=>c.zones),traps:chunks.flatMap(c=>c.traps),breakables:chunks.flatMap(c=>c.breakables).filter(p=>!p.broken),pickups:chunks.flatMap(c=>c.pickups).filter(p=>!p.collected),gems:activeGems(chunks,x,z),world:{chunkX:c.x,chunkZ:c.z,chunkSize:CHUNK_SIZE,activeRadius:ACTIVE_CHUNK_RADIUS,activeChunks:chunks.map(c=>({id:c.id,x:c.x,z:c.z})),visitedChunks:worldData.visitedChunks,visitedCount:worldData.visitedCount}};
   }
-  function resetInternals(){pendingAttack=null;xpFeedback=0;xpFeedbackAt=0;random=randomFrom(runSeed);cardRandom=randomFrom(seedNumber(runSeed+':'+hero.id+':'+(cooperative?.actorId||'solo')));recentOffers=[];nextID=1;ticks=0;accumulator=0;pendingDash=false;spawnClock=1.2;spawnNumber=0;nextSiegeAt=90;siegeWarned=false;nextEliteAt=cooperative?cooperativePacing(0).eliteAt:PACING.eliteAt;attackClock=.1;novaClock=4;pendingUpgrades=[];pausedFrom='playing';dashX=0;dashZ=-1;orbitAngle=0;orbitRadius=profile.range;chainReady=0;burstReady=0;riftOfferRetryAt=0;riftReturn=null;worldData=createWorldData(runSeed);currentChunkKey='0:0';propsDirty=false;enemyData.clear();shotData.clear();upgradeCounts.clear();obstacleBins.clear();zoneBins.clear();propBins.clear();knownPOIs.clear();}
+  function resetInternals(){pendingAttack=null;xpFeedback=0;xpFeedbackAt=0;random=randomFrom(runSeed);cardRandom=randomFrom(seedNumber(runSeed+':'+hero.id+':'+(cooperative?.actorId||'solo')));recentOffers=[];nextID=1;ticks=0;accumulator=0;pendingDash=false;spawnClock=1.2;spawnNumber=0;nextSiegeAt=90;siegeWarned=false;nextEliteAt=cooperative?cooperativePacing(0).eliteAt:PACING.eliteAt;attackClock=.1;novaClock=4;pendingUpgrades=[];pausedFrom='playing';dashX=0;dashZ=-1;orbitAngle=0;orbitRadius=profile.range;chainReady=0;burstReady=0;riftOfferRetryAt=0;riftReturn=null;worldData=createWorldData(runSeed);currentChunkKey='0:0';propsDirty=false;enemyData.clear();shotData.clear();volleyAt.clear();upgradeCounts.clear();obstacleBins.clear();zoneBins.clear();propBins.clear();knownPOIs.clear();}
   function makeState(){const world=worldSlice(0,0),maxHp=combatStats.maxHp,mapPOIs=world.pois.filter(p=>p.discovered);for(const poi of mapPOIs)knownPOIs.add(poi.id);return{
     phase:'menu',runId:expeditionId,seed:runSeed,t:0,heroId:hero.id,heroLevel:levelPermanent,baseStats:{...baseStats,trait:{...baseStats.trait}},attackFamily:family,wave:1,bossesDefeated:0,biome:'forest',nextBossAt:PACING.firstRift,nextRiftAt:PACING.firstRift,
     rift:{phase:'waiting',poiId:null,tier:1,offerAt:0,expiresAt:0,activation:0,activationDuration:PACING.riftActivation,bossId:null,completedAt:0,arenaActive:false,offeredReward:{...RIFT_RELICS[0],tier:1},reward:null},riftsCleared:0,relics:[],upgradeSource:null,
@@ -186,6 +187,12 @@ export function createGame({seed=12345,heroId='lyra',heroLevel=1,bonuses={},runI
     return null;
   }
   function metadata(e){const shared=cooperative?.enemyData||enemyData;let data=shared.get(e.id);if(!data){const b=ENEMIES[e.type]||ENEMIES.slime;data={speed:b.speed,damage:b.damage,xp:b.xp,dead:false,orbitNextHit:0,chargeCD:3+random()*2,chargeTime:0,chargeX:0,chargeZ:1,shootCD:1.8+random(),action:'',recover:0,numberAt:0,turn:e.id%2?1:-1,knockX:0,knockZ:0,poison:0,poisonPower:0,slow:0};shared.set(e.id,data);}return data;}
+  function rangedRules(){return rangedPacing(state.t,(cooperative?pacing().enemyGates:PACING.enemyGates).spitter,cooperative?pacing().players:1);}
+  function heroView(p,views){return views?.find(view=>view.playerId===p.playerId)||currentSpawnBounds();}
+  // View bounds enclose a 7 m tall slab: their near edge lies 6.5 m beyond the visible floor.
+  function onScreen(e,view){return e.x>=view.minX+1.6&&e.x<=view.maxX-1.6&&e.z>=view.minZ+1.5&&e.z<=view.maxZ-6.5;}
+  // A shooter fires only from where its target sees it, and waits its turn behind the others.
+  function canVolley(e,p,views,rules,windups){const target=p.playerId??'solo';return onScreen(e,heroView(p,views))&&(windups.get(target)||0)<rules.windups&&state.t-(volleyAt.get(target)??-Infinity)>=rules.gap;}
   function gatedEnemyType(type){return type==='boss'||state.t+1e-9>=((cooperative?pacing().enemyGates:PACING.enemyGates)[type]??0)?type:state.t+1e-9>=(cooperative?pacing().enemyGates.runner:PACING.enemyGates.runner)?'runner':'slime';}
   function reinforcementSlot(){
     const living=party(),views=cooperative?.views?.()||[currentSpawnBounds()];
@@ -201,6 +208,7 @@ export function createGame({seed=12345,heroId='lyra',heroLevel=1,bonuses={},runI
   }
   function spawnEnemy(type='slime',{elite=false,poiId,bossKind,bossTier=1,initial=false,initialIndex=0,side,focus,siege=false}={}){
     type=gatedEnemyType(type);elite=elite&&state.t+1e-9>=(cooperative?pacing().eliteAt:PACING.eliteAt);
+    if(type==='spitter'&&state.enemies.reduce((n,e)=>n+(e.type==='spitter'&&e.hp>0),0)>=rangedRules().cap)type='runner';
     const b=ENEMIES[type]||ENEMIES.slime,radius=elite&&type!=='boss'?b.radius*1.25:b.radius;
     const director=pacing(),cap=cooperative?director.maxEnemies:MAX_ENEMIES;
     const reserved=initial||siege||poiId||elite||state.t<60?0:4*siegePerSide(nextSiegeAt,director.players);
@@ -417,7 +425,8 @@ export function createGame({seed=12345,heroId='lyra',heroLevel=1,bonuses={},runI
       const side=state.t<55?heading:heading===0?front:heading===3?front^1:(front<2?1:0)*2+heading-1;
       spawnNumber++;
       if(state.biome==='crystal'&&roll<.27)type='wisp';if(state.biome==='swamp'&&roll<.25)type='spitter';if(state.biome==='desert'&&roll<.19)type='brute';
-      spawnEnemy(type,{side,focus});
+      // Shooters enter ahead of the hero they hunt: they are met, not left behind.
+      spawnEnemy(type,{side:type==='spitter'&&state.t>=55?front:side,focus});
     }
   }
   function riftPosition(){
@@ -485,9 +494,13 @@ export function createGame({seed=12345,heroId='lyra',heroLevel=1,bonuses={},runI
     queueUpgrade({kind:'rift',title:`Faille vaincue · palier ${r.tier}`,tier:r.tier,minimumRarity:'rare',reward:{...reward}});heal(25);
     effect('rift-victory',state.player.x,state.player.z,7,1.3,{color:'#fff0a4',tier:r.tier,poiId:r.poiId});effect('nova',state.player.x,state.player.z,7,.65,{color:'#fff0a4'});say(`Gardien vaincu ! Retour sur l’île avec ${reward.title}, un pouvoir rare et 25 PV.`,5.5);return true;
   }
-  function enemyShoot(e,data,radial=false){const growth=Math.min(9,Math.max(0,(e.bossTier||1)-1)),n=radial?Math.min(18,8+growth*2):state.t>=120?3:1,speed=radial?8+Math.min(2,growth*.22):11.5;for(let i=0;i<n;i++){const a=radial?i*TAU/n+state.t*.11:Math.atan2(data.chargeX,data.chargeZ)+(i-(n-1)/2)*.24;addShot('projectile',e.x,e.z,Math.sin(a)*speed,Math.cos(a)*speed,.25,{life:radial?3:2,damage:data.damage,pierce:0},{hostile:true,family:'enemy',color:'#ff6e81',angle:a});}}
+  function enemyShoot(e,data,radial=false){
+    const look=radial?guardianShot(e.speciesId):shooterShot(e.speciesId),growth=Math.min(9,Math.max(0,(e.bossTier||1)-1)),n=radial?Math.min(18,8+growth*2):look.count,speed=radial?8+Math.min(2,growth*.22):look.speed,radius=radial?.25:look.radius,life=radial?3:SHOT_RANGE/speed;
+    for(let i=0;i<n;i++){const a=radial?i*TAU/n+state.t*.11:Math.atan2(data.chargeX,data.chargeZ)+(i-(n-1)/2)*look.spread;addShot('projectile',e.x,e.z,Math.sin(a)*speed,Math.cos(a)*speed,radius,{life,damage:data.damage,pierce:0},{hostile:true,family:look.family,style:look.style,color:look.color,angle:a,until:state.t+life});}
+  }
   function updateEnemies(){
-    const living=party();
+    const living=party(),views=cooperative?.views?.(),rules=rangedRules(),windups=new Map();
+    for(const e of state.enemies)if(e.type==='spitter'&&e.telegraph>0){const target=metadata(e).target;windups.set(target,(windups.get(target)||0)+1);}
     for(const e of state.enemies){
       const p=living.reduce((best,player)=>!best||distance2(e,player)<distance2(e,best)?player:best,null)||state.player;
       if(e.hp<=0)continue;const data=metadata(e);e.hitFlash=Math.max(0,finite(e.hitFlash)-STEP);
@@ -495,8 +508,9 @@ export function createGame({seed=12345,heroId='lyra',heroLevel=1,bonuses={},runI
       data.slow=Math.max(0,data.slow-STEP);e.slowed=data.slow>0;
       const dx=p.x-e.x,dz=p.z-e.z,d=hypot(dx,dz)||1;
       // Abandoned enemies must release the spawn budget. Camp defenders can
-      // return when players come back, without counting as defeated.
-      if(d>65&&e.type!=='boss'&&e.telegraph<=0&&outsideView(e.x,e.z,e.radius)){
+      // return when players come back, without counting as defeated. A shooter
+      // left far behind every view frees its place sooner, so the few allowed stay near the heroes.
+      if((d>65||e.type==='spitter'&&state.t-e.spawnAt>6&&outsideView(e.x,e.z,e.radius+10))&&e.type!=='boss'&&e.telegraph<=0&&outsideView(e.x,e.z,e.radius)){
         if(data.poiId){
           const camp=state.pois.find(poi=>poi.id===data.poiId);
           if(camp&&!camp.completed){
@@ -512,7 +526,7 @@ export function createGame({seed=12345,heroId='lyra',heroLevel=1,bonuses={},runI
       const ready=data.chargeTime<=0&&e.telegraph<=0&&data.recover<=0,bossGrowth=Math.min(9,Math.max(0,(e.bossTier||1)-1));
       if(e.type==='boss'&&data.shootCD<=0&&d<17&&ready){e.telegraph=.58;e.telegraphDuration=.58;data.action='radial';data.shootCD=6.2-Math.min(2,bossGrowth*.25);data.chargeX=dx/d;data.chargeZ=dz/d;}
       else if((e.type==='brute'||e.type==='boss')&&data.chargeCD<=0&&d>3&&d<15&&ready){e.telegraph=e.type==='boss'?.48:.38;e.telegraphDuration=e.telegraph;data.action='charge';data.chargeX=dx/d;data.chargeZ=dz/d;e.angle=Math.atan2(data.chargeX,data.chargeZ);data.chargeCD=e.type==='boss'?4.6-Math.min(1.4,bossGrowth*.18):5.5;}
-      else if(e.type==='spitter'&&data.shootCD<=0&&d<15&&ready){e.telegraph=.38;e.telegraphDuration=.38;e.shotCount=state.t>=120?3:1;data.action='shoot';data.chargeX=dx/d;data.chargeZ=dz/d;e.angle=Math.atan2(data.chargeX,data.chargeZ);data.shootCD=2.45;}
+      else if(e.type==='spitter'&&data.shootCD<=0&&d<15&&ready&&canVolley(e,p,views,rules,windups)){const look=shooterShot(e.speciesId),target=p.playerId??'solo';e.telegraph=look.windup;e.telegraphDuration=look.windup;e.shotCount=look.count;data.action='shoot';data.target=target;data.chargeX=dx/d;data.chargeZ=dz/d;e.angle=Math.atan2(data.chargeX,data.chargeZ);data.shootCD=look.cooldown;volleyAt.set(target,state.t);windups.set(target,(windups.get(target)||0)+1);}
       e.attackKind=data.action;e.attackAngle=Math.atan2(data.chargeX,data.chargeZ);
       if(e.telegraph>0){
         e.action='windup';e.telegraph=Math.max(0,e.telegraph-STEP);speed*=(data.action==='shoot'||data.action==='radial')?.82:.28;
@@ -532,8 +546,9 @@ export function createGame({seed=12345,heroId='lyra',heroLevel=1,bonuses={},runI
         }else if(e.type==='wisp'){
           const drift=Math.sin(state.t*1.7+e.id*.6)*.68+(d<10?data.turn*.15:0);vx+=-dz/d*drift;vz+=dx/d*drift;e.hop=.22+Math.sin(state.t*3+e.id)*.13;
         }else if(e.type==='spitter'){
-          if(d<7.5){vx=-dx/d;vz=-dz/d;speed*=.76;}
-          else if(d<11){vx=-dz/d*data.turn;vz=dx/d*data.turn;speed*=.36;}
+          // Shooters hold a firing spot about nine paces away, inside their target's view.
+          const view=heroView(p,views),sx=clamp(p.x-dx/d*9.5,view.minX+2,view.maxX-2),sz=clamp(p.z-dz/d*9.5,view.minZ+2,view.maxZ-7),tx=sx-e.x,tz=sz-e.z,td=hypot(tx,tz);
+          if(td>1.2){vx=tx/td;vz=tz/td;speed*=td>8?1.3:td>4?1:.6;}else{vx=-dz/d*data.turn;vz=dx/d*data.turn;speed*=.36;}
         }else if(e.type==='brute'){speed*=.91+.09*Math.sin(e.gaitPhase)**2;}
         for(const o of nearbyObstacles(e.x,e.z)){const ox=e.x-o.x,oz=e.z-o.z,zone=o.radius+e.radius+1.4;if(ox*ox+oz*oz>=zone*zone)continue;const od=hypot(ox,oz);if(od<zone&&od>1e-4){const strength=(zone-od)/1.4;vx+=ox/od*strength*1.6+oz/od*data.turn*strength;vz+=oz/od*strength*1.6-ox/od*data.turn*strength;}}
         const v=hypot(vx,vz)||1;vx/=v;vz/=v;e.angle=Math.atan2(vx,vz);
@@ -581,7 +596,7 @@ export function createGame({seed=12345,heroId='lyra',heroLevel=1,bonuses={},runI
       if(data.boomerang&&data.age>data.turnAt){if(!data.returning){data.returning=true;data.hit.clear();}const dx=state.player.x-shot.x,dz=state.player.z-shot.z,d=hypot(dx,dz)||1;const speed=profile.speed*1.2*state.stats.velocity;shot.vx=dx/d*speed;shot.vz=dz/d*speed;if(d<.5)data.life=0;}
       const oldX=shot.x,oldZ=shot.z;shot.x+=shot.vx*STEP;shot.z+=shot.vz*STEP;shot.angle=Math.atan2(shot.vx,shot.vz);
       if(data.lob){shot.y=.7+Math.sin(clamp(data.age/data.flight,0,1)*Math.PI)*3.5;if(data.life<=0){explosion(shot.x,shot.z,data.explosionRadius,data.damage,shot.color,{poison:data.poison,slow:data.slow});shotData.delete(shot.id);}else alive.push(shot);continue;}
-      let remove=(shot.hostile?outsideProjectileView(shot.x,shot.z,shot.radius):data.life<=0)||hypot(shot.x,shot.z)>ARENA+2;
+      let remove=data.life<=0||shot.hostile&&outsideProjectileView(shot.x,shot.z,shot.radius)||hypot(shot.x,shot.z)>ARENA+2;
       if(shot.hostile){if(cooperative){const victim=party().filter(p=>segmentDistanceSq(p.x,p.z,oldX,oldZ,shot.x,shot.z)<(p.radius+shot.radius)**2).sort((a,b)=>distance2(a,{x:oldX,z:oldZ})-distance2(b,{x:oldX,z:oldZ}))[0];if(victim){cooperative.hurtPlayer(victim.playerId,data.damage,shot.x,shot.z);remove=true;}}else if(segmentDistanceSq(state.player.x,state.player.z,oldX,oldZ,shot.x,shot.z)<(state.player.radius+shot.radius)**2){hurtPlayer(data.damage,shot.x,shot.z);remove=true;}}
       else{const hits=[];for(const e of targetsNear(shot.x,shot.z,2))if(e.hp>0&&!data.hit.has(e.id)&&segmentDistanceSq(e.x,e.z,oldX,oldZ,shot.x,shot.z)<=(e.radius+shot.radius)**2)hits.push(e);hits.sort((a,b)=>(a.x-oldX)**2+(a.z-oldZ)**2-((b.x-oldX)**2+(b.z-oldZ)**2));for(const e of hits){data.hit.add(e.id);if(data.explosionRadius){explosion(shot.x,shot.z,data.explosionRadius,data.damage,shot.color,{poison:data.poison,slow:data.slow});remove=true;break;}hurtEnemy(e,data.damage,{from:shot,knock:.8,poison:data.poison||0,slow:data.slow||0});if(data.pierce<=0){remove=true;break;}data.pierce--;}}
       if(remove)shotData.delete(shot.id);else alive.push(shot);

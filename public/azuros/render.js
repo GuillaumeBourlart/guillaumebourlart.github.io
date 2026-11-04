@@ -29,9 +29,10 @@ const enemyKey=e=>e.type+':'+(e.biome||'forest')+':'+(e.bossKind||0)+':'+Math.ma
 const ALLY_DIMMED=new Set(['bonk','slash','punch','thrust','breath','nova','wave','burst','explosion','beam','lightning','chain','vortex','freeze','poison','hit','damage']);
 const FX_COLORS={bonk:'#ffe49a',slash:'#fff0c2',punch:'#ffda9a',thrust:'#c8f8ff',nova:'#bda0ff',wave:'#a2e7ee',lightning:'#ccf6ff',chain:'#b0eaff',burst:'#ffbf77',explosion:'#ffba73',beam:'#adf8ff',dash:'#d9ff9f',heal:'#9af3be',chest:'#ffe3a4',hit:'#fff0c2',breath:'#ffba7b',poison:'#b8e18c',freeze:'#c3f9ff',vortex:'#c8a6ff',break:'#e6bd87','trap-warning':'#f4bd7b','trap-hit':'#ff9297','pickup-heal':'#a7f0bb','terrain-entry':'#bbdcdf'};
 
-function projectileModel(p,hero){
+export function projectileModel(p,hero){
   const family=p.family||hero.family,type=p.type;
-  const color=p.hostile?'#ff8d94':p.color||hero.accent||hero.color;
+  // Hostile shots keep their species' colour and shape; a shared red halo and ground mark say danger.
+  const color=p.color||hero.accent||hero.color;
   const m=material(color,.22),white=material('#fff8dd',.12),dark=material('#33445c');
   const g=group();g.userData.family=family;g.userData.type=type;g.userData.hostile=!!p.hostile;
   if(type==='orbit'){
@@ -86,10 +87,17 @@ function projectileModel(p,hero){
     mesh(GEO.gem,m,0,0,0,.12,.09,.64,g);mesh(GEO.gem,white,.22,0,.4,.43,.08,.13,g);
   }else if(family==='laser'){
     mesh(GEO.box,m,0,0,0,.12,.12,1,g);mesh(GEO.box,white,0,.025,.03,.045,.045,.8,g);
+  }else if(p.style==='arcane'){
+    mesh(GEO.round,m,0,0,0,.25,.25,.25,g);mesh(GEO.gem,white,0,0,0,.12,.19,.12,g);
+    for(const s of[-1,1])mesh(GEO.gem,m,s*.34,0,0,.07,.11,.07,g);
   }else{
     mesh(GEO.ball,m,0,0,0,.23,.23,.25,g);
     mesh(GEO.ball,white,0,.04,.06,.12,.12,.12,g);
     const tail=mesh(GEO.cone,flat(color,.46),0,0,-.36,.19,.65,.17,g);tail.rotation.x=-Math.PI/2;
+  }
+  if(p.hostile){
+    ring(flat('#ff4d6d',.45),0,0,0,.56,g);
+    const mark=disc(flat('#ff4d6d',.28),0,0,0,.42,g);mark.renderOrder=-12;g.userData.mark=mark;
   }
   return g;
 }
@@ -355,7 +363,10 @@ export function createRenderer(container){
       g.position.set(shot.x,Number.isFinite(shot.y)?shot.y:ground?.21:shot.type==='orbit'?1.15:.92,shot.z);
       const angle=Number.isFinite(shot.angle)?shot.angle:Math.atan2(shot.vx||0,shot.vz||1);
       g.rotation.y=['orbit','boomerang','stars','vortex'].includes(shot.type)||['boomerang','stars','vortex'].includes(shot.family)?time*(shot.type==='orbit'?8:5):angle;
-      const radius=shot.radius||.18,s=shot.type==='wave'||shot.type==='vortex'?Math.max(.5,radius):clamp(radius/.23,.65,3.4),visualScale=shot.hostile?1.35:1;g.scale.setScalar(s*visualScale);
+      const radius=shot.radius||.18,s=shot.type==='wave'||shot.type==='vortex'?Math.max(.5,radius):clamp(radius/.23,.65,3.4),visualScale=shot.hostile?1.35:1;
+      // A hostile shot shrinks away over the last quarter second of its range.
+      const fade=shot.hostile&&Number.isFinite(shot.until)?clamp((shot.until-(state.t||0))/.25,0,1):1;g.scale.setScalar(s*visualScale*(.3+.7*fade));
+      if(g.userData.mark)g.userData.mark.position.y=(.04-g.position.y)/g.scale.y;
       if(shot.family==='bees')g.position.y+=Math.sin(time*22+phaseOf(shot.id))*.07;
     }
     for(const[id,g]of shotMap)if(!active.has(id)){entities.remove(g);shotMap.delete(id);shotPool.put(g.userData.poolKey,g);}
