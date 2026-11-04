@@ -19,11 +19,14 @@ import {createHealthBatch} from './render/health-batch.js';
 import {cacheSkeletonPose} from './render/pose-cache.js';
 import {activeAttack,attackPose} from './game/attack-timing.js';
 import {deathPresentation,livingSpectateTarget} from './game/death-presentation.js';
+import {REVIVE} from './game/coop-pacing.js';
 
 const clamp=(v,a=0,b=1)=>Math.max(a,Math.min(b,v));
 const distance=(a,b)=>Math.hypot(a.x-b.x,a.z-b.z);
 const phaseOf=id=>{if(Number.isFinite(id))return id;let n=0;for(const c of String(id||''))n=(n*31+c.charCodeAt(0))%997;return n;};
 const enemyKey=e=>e.type+':'+(e.biome||'forest')+':'+(e.bossKind||0)+':'+Math.max(1,Math.min(10,e.bossTier||1))+':'+enemySpecies(e);
+// In coop, allies' weapon visuals and damage numbers are drawn fainter than the player's own.
+const ALLY_DIMMED=new Set(['bonk','slash','punch','thrust','breath','nova','wave','burst','explosion','beam','lightning','chain','vortex','freeze','poison','hit','damage']);
 const FX_COLORS={bonk:'#ffe49a',slash:'#fff0c2',punch:'#ffda9a',thrust:'#c8f8ff',nova:'#bda0ff',wave:'#a2e7ee',lightning:'#ccf6ff',chain:'#b0eaff',burst:'#ffbf77',explosion:'#ffba73',beam:'#adf8ff',dash:'#d9ff9f',heal:'#9af3be',chest:'#ffe3a4',hit:'#fff0c2',breath:'#ffba7b',poison:'#b8e18c',freeze:'#c3f9ff',vortex:'#c8a6ff',break:'#e6bd87','trap-warning':'#f4bd7b','trap-hit':'#ff9297','pickup-heal':'#a7f0bb','terrain-entry':'#bbdcdf'};
 
 function projectileModel(p,hero){
@@ -98,19 +101,41 @@ function animateFallbackStrike(model,attack,time){
   model.arms[1].rotation.z=-.45*swing;
 }
 
+// Effect materials are recycled. Disposing the last material of a shader variant makes three.js delete
+// that program, and the next effect compiles it again: a stall of tens of milliseconds on a phone.
+const FX_MATERIALS={mesh:[],sprite:[],line:[]};
+function fxMaterial(kind){
+  const reused=FX_MATERIALS[kind].pop();if(reused)return reused;
+  const m=kind==='sprite'?new THREE.SpriteMaterial({transparent:true,depthTest:false,depthWrite:false}):kind==='line'?new THREE.LineBasicMaterial({transparent:true,opacity:1}):new THREE.MeshBasicMaterial({transparent:true,side:THREE.DoubleSide,depthWrite:false,forceSinglePass:true});
+  m.userData.fxKind=kind;return m;
+}
+function releaseFxMaterial(m){const pool=FX_MATERIALS[m.userData.fxKind];if(pool&&pool.length<400)pool.push(m);else m.dispose();}
+// Damage and XP numbers repeat constantly, so their small canvases are shared instead of drawn and uploaded each time.
+const LABELS=new Map();
+function sharedLabel(text,options){
+  const key=text+'|'+options.color+'|'+options.size;let entry=LABELS.get(key);
+  if(entry){LABELS.delete(key);LABELS.set(key,entry);}
+  else{const texture=labelTexture(text,{...options,scale:.5});if(!texture)return null;texture.userData.labelKey=key;entry={texture,users:0};LABELS.set(key,entry);}
+  entry.users++;
+  if(LABELS.size>120)for(const [k,v]of LABELS){if(LABELS.size<=120)break;if(v.users<=0){v.texture.dispose();LABELS.delete(k);}}
+  return entry.texture;
+}
+function releaseLabel(texture){const entry=LABELS.get(texture.userData.labelKey);if(entry&&entry.texture===texture)entry.users--;else texture.dispose();}
+let labelScale=1;
 function makeEffect(e){
   const terrainColor=e.terrain==='mud'?'#c7ac84':'#b9ecf3',propColor=({crate:'#dfb47a',vase:'#b8d6df',crystal:'#c6baff'})[e.propType]||'#e6bd87';
   const g=group(),color=e.type?.startsWith('rift-')?riftColor(e.tier):e.type==='break'?propColor:e.type==='terrain-entry'?terrainColor:['trap-warning','trap-hit','pickup-heal'].includes(e.type)?FX_COLORS[e.type]:e.color||FX_COLORS[e.type]||'#d8f3b0';
   const own=[];
-  const fxMat=(c,opacity=.8)=>{const m=new THREE.MeshBasicMaterial({color:c,transparent:true,opacity,side:THREE.DoubleSide,depthWrite:false});own.push(m);return m;};
+  const fxMat=(c,opacity=.8)=>{const m=fxMaterial('mesh');m.color.set(c);m.opacity=opacity;own.push(m);return m;};
+  const labelMat=texture=>{const m=fxMaterial('sprite');m.map=texture;m.opacity=1;own.push(m);return m;};
   const base=fxMat(color);
   if(e.type==='xp-pickup'){
-    const texture=labelTexture('+'+Math.round(e.amount||1)+' XP',{color:'#9af3ff',size:50});
-    if(texture){const mat=new THREE.SpriteMaterial({map:texture,transparent:true,depthTest:false,depthWrite:false});own.push(mat);const sprite=new THREE.Sprite(mat);sprite.scale.set(1.7,.65,1);sprite.position.y=1.1;sprite.renderOrder=119;g.add(sprite);g.userData.textures=[texture];}
+    const texture=sharedLabel('+'+Math.round(e.amount||1)+' XP',{color:'#9af3ff',size:50});
+    if(texture){const sprite=new THREE.Sprite(labelMat(texture));sprite.scale.set(1.7*labelScale,.65*labelScale,1);sprite.position.y=1.1;sprite.renderOrder=119;g.add(sprite);g.userData.textures=[texture];}
     ring(base,0,.12,0,.45,g);
   }else if(e.type==='damage'){
-    const amount=Math.max(1,Math.round(e.amount||0)),texture=labelTexture((e.crit?'✦ ':'')+amount,{color:e.hostile?'#ffb0a1':e.crit?'#ffe6a0':'#f1f8d7',size:e.crit?66:61});
-    if(texture){const mat=new THREE.SpriteMaterial({map:texture,transparent:true,depthTest:false,depthWrite:false});own.push(mat);const sprite=new THREE.Sprite(mat);sprite.scale.set(e.crit?2.2:1.75,e.crit?1.1:.875,1);sprite.position.y=e.enemyType==='boss'?3.3:1.8;sprite.renderOrder=120;g.add(sprite);g.userData.textures=[texture];g.userData.label=sprite;}
+    const amount=Math.max(1,Math.round(e.amount||0)),texture=sharedLabel((e.crit?'✦ ':'')+amount,{color:e.hostile?'#ffb0a1':e.crit?'#ffe6a0':'#f1f8d7',size:e.crit?66:61});
+    if(texture){const sprite=new THREE.Sprite(labelMat(texture));sprite.scale.set((e.crit?2.2:1.75)*labelScale,(e.crit?1.1:.875)*labelScale,1);sprite.position.y=e.enemyType==='boss'?3.3:1.8;sprite.renderOrder=120;g.add(sprite);g.userData.textures=[texture];g.userData.label=sprite;}
   }else if(e.type?.startsWith('rift-')){
     const halo=mesh(GEO.fineRing,fxMat(e.type==='rift-victory'?'#e6d2ab':color,.48),0,.09,0,1,1,1,g);halo.rotation.x=-Math.PI/2;
     if(e.type==='rift-start')ring(fxMat(color,.2),0,.12,0,.76,g);
@@ -129,7 +154,7 @@ function makeEffect(e){
         vertices.push(new THREE.Vector3(a.x+dx*t-dz/len*w,1.13+(j%2)*.04,a.z+dz*t+dx/len*w));
       }
     }
-    const lineMat=new THREE.LineBasicMaterial({color,transparent:true,opacity:1,linewidth:e.type==='beam'?4:2});own.push(lineMat);
+    const lineMat=fxMaterial('line');lineMat.color.set(color);lineMat.opacity=1;lineMat.linewidth=e.type==='beam'?4:2;own.push(lineMat);
     const line=new THREE.Line(new THREE.BufferGeometry().setFromPoints(vertices),lineMat);line.userData.uniqueGeometry=true;g.add(line);g.userData.absolute=true;
     if(e.type==='beam')for(let i=0;i<points.length-1;i++){
       const a=points[i],b=points[i+1],dx=b.x-a.x,dz=b.z-a.z,len=Math.hypot(dx,dz);
@@ -174,6 +199,17 @@ export function createRenderer(container){
   const entities=group(scene),heroLayer=group(scene),heroShadow=contactShadow(scene,0,0,1.07,.58,.77,.04);
   const combatTrails=createCombatTrails(entities,{software,reducedMotion:reduced});
   const aura=mesh(GEO.fineRing,flat('#d9cce9',.72),0,.07,0,.9,.9,.9,scene);aura.rotation.x=-Math.PI/2;
+  // Revive zone around a downed hero: a faint circle at the real radius, filled clockwise by the progress.
+  const REVIVE_SEGMENTS=64,reviveBase=new THREE.MeshBasicMaterial({color:'#ffe4b8',transparent:true,opacity:.4,side:THREE.DoubleSide,depthWrite:false,forceSinglePass:true}),reviveFill=new THREE.MeshBasicMaterial({color:'#ffc777',transparent:true,opacity:.95,side:THREE.DoubleSide,depthWrite:false,forceSinglePass:true});
+  const reviveBaseGeometry=new THREE.RingGeometry(REVIVE.radius-.06,REVIVE.radius+.06,REVIVE_SEGMENTS);
+  function makeReviveRing(parent){
+    const g=group(parent),base=new THREE.Mesh(reviveBaseGeometry,reviveBase),fill=new THREE.Mesh(new THREE.RingGeometry(REVIVE.radius-.2,REVIVE.radius+.1,REVIVE_SEGMENTS,1,Math.PI/2,TAU),reviveFill);
+    fill.userData.uniqueGeometry=true;fill.scale.x=-1;
+    for(const m of[base,fill]){m.rotation.x=-Math.PI/2;m.position.y=.09;m.renderOrder=3;g.add(m);}
+    g.userData.fill=fill;g.visible=false;return g;
+  }
+  function showReviveRing(ring,progress){const n=Math.round(REVIVE_SEGMENTS*clamp(progress||0));ring.visible=true;ring.userData.fill.visible=n>0;ring.userData.fill.geometry.setDrawRange(0,n*6);}
+  const localRevive=makeReviveRing(scene);
   const previewStage=group(scene);
   contactShadow(previewStage,.12,.12,2.95,.55,.84);
   mesh(GEO.cylinder16,paintedMaterial('stone','#454b68'),0,.16,0,2.15,.32,2.15,previewStage);
@@ -188,7 +224,7 @@ export function createRenderer(container){
   let lastRunId='',viewBounds={minX:-20,maxX:20,minZ:-20,maxZ:20},trailClock=0,lastTrail={x:0,z:0},lastRenderPhase='',lossStartedAt=0;
   const trails=[];
   function withinView(o,padding=5){return o.x>=viewBounds.minX-padding&&o.x<=viewBounds.maxX+padding&&o.z>=viewBounds.minZ-padding&&o.z<=viewBounds.maxZ+padding;}
-  function clearEffect(g){disposeModel(g);for(const m of g.userData.materials||[])m.dispose();for(const t of g.userData.textures||[])t.dispose();}
+  function clearEffect(g){disposeModel(g);for(const m of g.userData.materials||[])releaseFxMaterial(m);for(const t of g.userData.textures||[])releaseLabel(t);}
   function getSpawnBounds(player,forceGameplay=false){if(forceGameplay||lastMenu){applyGameplayCamera(spawnCamera,width,height,player?.x||0,player?.z||0);return cameraGroundBounds(spawnCamera);}updateGameplayProjection(camera,width,height);return cameraGroundBounds(camera);}
   function projectWorld(x,z,y=0){const p=new THREE.Vector3(x,y,z).project(camera);return{x:(p.x+1)*width/2,y:(1-p.y)*height/2,visible:Math.abs(p.x)<=1&&Math.abs(p.y)<=1&&p.z>=-1&&p.z<=1};}
   const enemyMap=new Map(),enemyPool=createModelPool({limit:128,perKey:16,dispose:disposeModel}),shotMap=new Map(),shotPool=createModelPool({limit:192,perKey:36,dispose:disposeModel}),gemMap=new Map(),gemPool=[],effectMap=new Map(),remoteHeroes=new Map();
@@ -206,7 +242,7 @@ export function createRenderer(container){
         const texture=labelTexture(String(ally.name||h.name).slice(0,18),{color:'#e8e4d2',size:40});let labelMaterial=null;
         if(texture){labelMaterial=new THREE.SpriteMaterial({map:texture,transparent:true,depthTest:false,depthWrite:false});const label=new THREE.Sprite(labelMaterial);label.position.y=headY+.4;label.scale.set(2.3,.65,1);label.renderOrder=115;g.add(label);}
         ring(flat(h.color,.65),0,.075,0,.73,g);
-        entry={heroId:h.id,group:g,body,hp,texture,labelMaterial};remoteHeroes.set(ally.id,entry);
+        entry={heroId:h.id,group:g,body,hp,texture,labelMaterial,revive:makeReviveRing(g)};remoteHeroes.set(ally.id,entry);
       }
       const p=ally.player,m=entry.body.userData,walk=Math.hypot(p.vx||0,p.vz||0)>.15&&state.phase==='playing'?Math.sin(time*15)*.63:0;
       const attack=activeAttack(p.attack,state.t);
@@ -218,6 +254,7 @@ export function createRenderer(container){
       animateAsset(entry.body,{time:state.t,moving:!!walk,timedAttack:attack,hit:p.hitFlash>0,dead:p.hp<=0});
       for(let i=0;i<m.wings.length;i++)m.wings[i].rotation.z=Math.sin(time*4)*.17*(i%2?-1:1);
       entry.hp.scale.x=1.3*clamp(p.hp/p.maxHp);entry.hp.position.x=-(1.3-entry.hp.scale.x)/2;
+      if(p.hp<=0&&state.phase==='playing')showReviveRing(entry.revive,p.reviveProgress);else entry.revive.visible=false;
       entry.group.visible=withinView(p,8);
     }
     for(const[id,entry]of remoteHeroes)if(!active.has(id)){heroLayer.remove(entry.group);disposeModel(entry.group);entry.texture?.dispose();entry.labelMaterial?.dispose();remoteHeroes.delete(id);}
@@ -336,9 +373,9 @@ export function createRenderer(container){
     const active=new Set();
     for(const e of state.effects||[]){
       if(reduced&&e.type==='death')continue;
-      if(!withinView(e,7+(e.radius||0)))continue;active.add(e.id);let g=effectMap.get(e.id);if(!g){g=makeEffect(e);effectMap.set(e.id,g);entities.add(g);}
+      if(!withinView(e,7+(e.radius||0)))continue;active.add(e.id);let g=effectMap.get(e.id);if(!g){g=makeEffect(e);g.userData.dim=e.ownerId&&e.ownerId!==state.player.playerId&&ALLY_DIMMED.has(e.type)?.42:1;effectMap.set(e.id,g);entities.add(g);}
       const progress=1-clamp(e.life/Math.max(.01,e.maxLife||.4));
-      for(const m of g.userData.materials||[])m.opacity=(1-progress)*(m.isLineBasicMaterial||m.isSpriteMaterial?.94:.58);
+      for(const m of g.userData.materials||[])m.opacity=(1-progress)*(m.isLineBasicMaterial||m.isSpriteMaterial?.94:.58)*g.userData.dim;
       if(e.type==='xp-pickup'){g.position.y=.2+progress*.85;g.scale.setScalar(1);continue;}
       if(e.type==='damage'){g.position.y=progress*(reduced?.45:1.1);g.position.x=e.x+(reduced?0:Math.sin(phaseOf(e.id))*progress*.2);continue;}
       if(e.type==='death'||e.type==='break'){for(const piece of g.userData.pieces||[]){const u=piece.userData;piece.position.set(Math.sin(u.angle)*u.reach*progress,.2+Math.sin(progress*Math.PI)*u.rise,Math.cos(u.angle)*u.reach*progress);piece.rotation.set(progress*7,progress*5,u.angle);piece.scale.setScalar(.14*(1-progress)+.025);}g.scale.setScalar(e.radius||.8);continue;}
@@ -354,7 +391,7 @@ export function createRenderer(container){
     const p=state.player;trailClock-=dt;
     if(state.phase==='playing'&&moving&&!reduced&&trailClock<=0&&Math.hypot(p.x-lastTrail.x,p.z-lastTrail.z)>.35){
       let trail=trails.find(t=>t.userData.life<=0);
-      if(!trail&&trails.length<28){const mat=new THREE.MeshBasicMaterial({color:'#d9d8a1',transparent:true,opacity:.3,depthWrite:false,side:THREE.DoubleSide});trail=mesh(GEO.disc,mat,0,.06,0,.2,.2,.2,entities);trail.rotation.x=-Math.PI/2;trail.userData.uniqueMaterial=true;trail.userData.life=0;trails.push(trail);}
+      if(!trail&&trails.length<28){const mat=new THREE.MeshBasicMaterial({color:'#d9d8a1',transparent:true,opacity:.3,depthWrite:false,side:THREE.DoubleSide,forceSinglePass:true});trail=mesh(GEO.disc,mat,0,.06,0,.2,.2,.2,entities);trail.rotation.x=-Math.PI/2;trail.userData.uniqueMaterial=true;trail.userData.life=0;trails.push(trail);}
       if(trail){trail.position.set(p.x-(p.vx||0)*.025,.06,p.z-(p.vz||0)*.025);trail.userData.life=trail.userData.maxLife=dashing?.45:.6;trail.userData.dash=dashing;trail.material.color.set(dashing?'#d8f4bd':state.biome==='desert'?'#e6c99b':'#a7bc8c');trail.visible=true;}
       trailClock=dashing?.025:.11;lastTrail={x:p.x,z:p.z};
     }
@@ -405,11 +442,13 @@ export function createRenderer(container){
     animateAsset(hero,{time:isMenu?time:state.t,moving,timedAttack:attack,hit:p.hitFlash>0,dead:p.hp<=0&&!isMenu,menu:isMenu,reducedMotion:reduced});
     hero.visible=true;hero.rotation.z=model.rig?0:p.hp<=0&&!isMenu?-1.2:0;
     heroShadow.visible=!isMenu;heroShadow.position.set(p.x,.04,p.z);
+    localRevive.position.set(p.x,0,p.z);if(!isMenu&&p.hp<=0&&state.phase==='playing'&&state.party?.length>1)showReviveRing(localRevive,p.reviveProgress);else localRevive.visible=false;
+    reviveBase.opacity=.3+.14*Math.sin(ambientTime*4);
     aura.visible=!isMenu;aura.position.set(p.x,.065,p.z);aura.rotation.z=ambientTime*.25;aura.scale.setScalar(dashing?1.3:.87);aura.material=flat(p.invuln>0?'#efc6a9':'#d9cce9',.72);
     previewStage.visible=isMenu;previewStage.position.set(p.x,0,p.z);stageRing.rotation.z=ambientTime*.06;
     previewOrbits.visible=isMenu&&heroData.family==='orbit';
     for(let i=0;i<orbitPreviews.length;i++){const a=ambientTime*1.1+i/3*TAU;orbitPreviews[i].position.set(p.x+Math.cos(a)*2.35,1.4+Math.sin(a)*.3,p.z+Math.sin(a)*2.35);orbitPreviews[i].rotation.y=ambientTime*2;}
-    entities.visible=!isMenu;updateAllies(state,time,isMenu);
+    entities.visible=!isMenu;labelScale=Math.min(width,height)<560?.8:1;updateAllies(state,time,isMenu);
     updateEnemies(state,state.t||0);updateProjectiles(state,time,heroData);combatTrails.update(state,heroData,viewBounds);updateGems(state,ambientTime,dt);updateEffects(state);updateTrails(state,dt,moving,dashing);
     renderer.render(scene,camera);
   }

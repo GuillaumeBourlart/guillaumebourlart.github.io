@@ -281,9 +281,10 @@ body[data-reduced-motion="true"] .summon-reveal *,body[data-reduced-motion="true
 .danger-overlay:before{content:"";position:absolute;inset:0;border:clamp(3px,.7vw,11px) solid rgb(255 70 78 / calc(var(--danger-alpha) * .62))}
 .critical-heart{font-size:clamp(27px,4vw,48px);line-height:1;color:#ff5360;filter:drop-shadow(0 0 12px #ff152e);animation:critical-heartbeat .86s ease-in-out infinite}
 .danger-overlay>strong{margin-top:7px;font-size:clamp(9px,1.1vw,13px);letter-spacing:.2em}
-.danger-overlay[data-mode=downed]{justify-content:center;padding:16px;background:radial-gradient(circle,transparent 15%,#28050f99 100%);box-shadow:inset 0 0 clamp(60px,12vw,180px) clamp(12px,2vw,34px) rgb(130 0 20 / .65);animation:none}
+/* Downed: the label sits low like the critical one, so the revive ring around the hero stays visible. */
+.danger-overlay[data-mode=downed]{background:radial-gradient(circle,transparent 15%,#28050f99 100%);box-shadow:inset 0 0 clamp(60px,12vw,180px) clamp(12px,2vw,34px) rgb(130 0 20 / .65);animation:none}
 .danger-overlay[data-mode=downed] .critical-heart{display:none}
-.danger-overlay[data-mode=downed]>strong{padding:12px 18px;border:1px solid #ff9a9a66;border-radius:999px;background:#210a16cc;font-size:clamp(10px,1.5vw,16px)}
+.danger-overlay[data-mode=downed]>strong{padding:7px 13px;border:1px solid #ff9a9a66;border-radius:999px;background:#210a16cc;font-size:clamp(9px,1.2vw,13px)}
 @keyframes critical-heartbeat{0%,24%,100%{transform:scale(.9)}34%{transform:scale(1.24)}43%{transform:scale(.98)}53%{transform:scale(1.13)}67%{transform:scale(.92)}}
 @keyframes danger-breathe{0%,100%{opacity:.68}40%{opacity:1}72%{opacity:.78}}
 

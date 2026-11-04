@@ -38,7 +38,9 @@ export function createUI(options){
   $('summon-rates').innerHTML='<div class="rates-grid">'+Object.values(RARITIES).map(r=>`<span style="color:${r.color}">${r.label}<b>${r.weight} %</b></span>`).join('')+'</div>';
   const blur=()=>{if(document.activeElement?.tagName==='BUTTON')document.activeElement.blur();};
   function clearInput(){input={x:0,z:0};dashQueued=false;const old=pointer;pointer=null;if(old!==null&&$('joystick').hasPointerCapture?.(old))$('joystick').releasePointerCapture(old);$('joystick').classList.remove('active');$('joystick-knob').style.transform='translate(-50%,-50%)';}
-  function showToast(message){if(!message)return;text($('toast'),message);toastUntil=performance.now()+3400;$('toast').classList.add('visible');}
+  // Phones show hints for less time: the toast sits over the arena.
+  const compactScreen=window.matchMedia?.('(max-width:700px),(max-height:540px)');
+  function showToast(message){if(!message)return;text($('toast'),message);toastUntil=performance.now()+(compactScreen?.matches?2500:3400);$('toast').classList.add('visible');}
   function showError(message){text($('error-message'),message||'Recharge le jeu pour repartir.');$('error-panel').hidden=false;clearInput();}
   function setVisibility(){
     document.body.dataset.phase=phase;document.body.dataset.tab=tab;
@@ -216,7 +218,7 @@ export function createUI(options){
     const vitals=$('health-track').closest('.vitals');vitals.style.setProperty('--health',String(health));vitals.style.setProperty('--experience',String(xp));
     text($('level-label'),`NIV. ${state.level}`);text($('health-value'),`${Math.ceil(p.hp)} / ${Math.ceil(p.maxHp)}`);$('health-fill').style.transform=`scaleX(${health})`;$('health-track').setAttribute('aria-valuenow',Math.ceil(p.hp));$('health-track').setAttribute('aria-valuemax',Math.ceil(p.maxHp));$('health-track').closest('.vitals').classList.toggle('low-health',health<.25);$('xp-fill').style.transform=`scaleX(${xp})`;$('xp-track').setAttribute('aria-valuenow',Math.round(xp*100));
     const spectated=livingSpectateTarget(state),critical=phase==='playing'&&p.hp>0&&health<.25&&!modalType,downed=phase==='playing'&&p.hp<=0&&!!spectated,danger=$('danger-overlay');
-    danger.hidden=!critical&&!downed;danger.dataset.mode=downed?'downed':'critical';danger.style.setProperty('--danger-alpha',String(clamp(.35+(1-health)*.55,.35,.9)));text($('danger-label'),downed?`À TERRE · CAMÉRA SUR ${spectated.name.toUpperCase()}`:'VIE CRITIQUE');
+    danger.hidden=!critical&&!downed;danger.dataset.mode=downed?'downed':'critical';danger.style.setProperty('--danger-alpha',String(clamp(.35+(1-health)*.55,.35,.9)));text($('danger-label'),downed?'À TERRE':'VIE CRITIQUE');
     const choosing=(state.party||[]).filter(member=>member.choosing).map(member=>member.name),waiting=$('team-waiting');waiting.hidden=phase!=='waiting';
     if(phase==='waiting')text($('team-waiting-label'),choosing.length?`${choosing.join(', ')} ${choosing.length>1?'choisissent':'choisit'}… Le combat est en pause.`:'Les autres aventuriers terminent leur choix… Le combat est en pause.');
     const lossStage=phase==='lost'&&lossStartedAt?deathPresentation(performance.now()-lossStartedAt):null,cinematic=$('death-cinematic');cinematic.hidden=!lossStage||lossStage.showResult;cinematic.dataset.word=String(Boolean(lossStage?.showLostWord));

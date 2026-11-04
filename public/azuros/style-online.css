@@ -15,3 +15,9 @@
 @media(max-width:700px) and (orientation:portrait){body .discovery-hint{bottom:132px}body[data-online=true] .discovery-hint{top:176px;bottom:auto;left:12px;transform:none}}
 @media(max-width:700px) and (orientation:portrait){.team-hud{top:154px}body[data-online=true] .discovery-hint{top:196px}}
 @media(max-height:540px) and (orientation:landscape){.team-hud{top:88px;left:12px;right:auto}body[data-online=true] .discovery-hint{top:128px;bottom:auto;left:12px;transform:none;max-width:230px}}
+/* A downed ally off screen is a small marked arrow; on screen the ring drawn in the world replaces the card. */
+.direction-cross{display:none}.direction-marker.revive .direction-cross{display:grid;place-items:center;width:22px;height:22px;margin-top:-5px;border-radius:50%;background:#2a1d12d9;border:1px solid #ffcf9d99;font-size:12px;line-height:1;color:#ffd7a3}.direction-marker.revive .direction-symbol{font-size:24px;width:24px;height:24px}.direction-label:empty,.direction-marker small:empty{display:none}
+/* Late snapshots: three signal bars, no message. */
+.network-weak{position:fixed;z-index:60;top:calc(env(safe-area-inset-top) + 16px);right:calc(env(safe-area-inset-right) + 96px);display:flex;align-items:flex-end;gap:2px;height:16px;padding:3px 5px;border-radius:5px;background:#0d2433b8;pointer-events:none}.network-weak[hidden]{display:none}.network-weak i{display:block;width:3px;border-radius:1px;background:#f3c27a}.network-weak i:nth-child(1){height:4px}.network-weak i:nth-child(2){height:7px;opacity:.4}.network-weak i:nth-child(3){height:10px;opacity:.2}
+/* Phones in portrait: allies are a letter and a life bar, kept left of the minimap. */
+@media(max-width:700px) and (orientation:portrait){.team-hud{max-width:calc(100% - 138px);flex-wrap:wrap}.ally-pill{min-width:0;max-width:none;padding:4px 7px 4px 4px}.ally-pill strong{display:none}.ally-life{min-width:34px;margin-top:0}.ally-pill>b{font-size:11px}}

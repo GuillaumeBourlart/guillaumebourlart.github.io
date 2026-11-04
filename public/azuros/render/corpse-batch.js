@@ -20,7 +20,7 @@ export function bakeCorpseParts(root){
 }
 
 function fadingMaterial(original){
-  const m=original.clone();m.transparent=true;m.depthWrite=false;
+  const m=original.clone();m.transparent=true;m.depthWrite=false;m.forceSinglePass=true;
   m.onBeforeCompile=shader=>{
     shader.vertexShader='attribute float corpseAlpha; varying float vCorpseAlpha;\n'+shader.vertexShader;
     shader.vertexShader=shader.vertexShader.replace('#include <begin_vertex>','#include <begin_vertex>\nvCorpseAlpha = corpseAlpha;');

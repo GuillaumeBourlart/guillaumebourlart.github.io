@@ -66,9 +66,9 @@ export function paintedMaterial(kind,base,{flat=false,glow=0}={}){
   const mat=flat?new THREE.MeshBasicMaterial(parameters):new THREE.MeshStandardMaterial({...parameters,roughness:.91,metalness:0,flatShading:kind==='stone',emissive:base,emissiveIntensity:glow});
   materials.set(key,mat);return mat;
 }
-export function labelTexture(text,{color='#fff5ce',stroke='#142c39',size=72}={}){
+export function labelTexture(text,{color='#fff5ce',stroke='#142c39',size=72,scale=1}={}){
   if(typeof document==='undefined')return null;
-  const canvas=document.createElement('canvas');canvas.width=256;canvas.height=128;const c=canvas.getContext('2d');if(!c)return null;c.font=`900 ${size}px system-ui`;c.textAlign='center';c.textBaseline='middle';c.lineJoin='round';c.lineWidth=9;c.strokeStyle=stroke;c.strokeText(text,128,66);c.fillStyle=color;c.fillText(text,128,66);const texture=new THREE.CanvasTexture(canvas);texture.colorSpace=THREE.SRGBColorSpace;return texture;
+  const canvas=document.createElement('canvas');canvas.width=256*scale;canvas.height=128*scale;const c=canvas.getContext('2d');if(!c)return null;c.scale(scale,scale);c.font=`900 ${size}px system-ui`;c.textAlign='center';c.textBaseline='middle';c.lineJoin='round';c.lineWidth=9;c.strokeStyle=stroke;c.strokeText(text,128,66);c.fillStyle=color;c.fillText(text,128,66);const texture=new THREE.CanvasTexture(canvas);texture.colorSpace=THREE.SRGBColorSpace;return texture;
 }
 
 // A soft, irregular fringe hides the square chunk boundary between regions.
@@ -79,7 +79,7 @@ export function fringeMaterial(kind,base){
   c.globalCompositeOperation='destination-in';const fade=c.createLinearGradient(100,0,460,0);fade.addColorStop(0,'#ffffffff');fade.addColorStop(.28,'#ffffffef');fade.addColorStop(.68,'#ffffff55');fade.addColorStop(1,'#ffffff00');c.fillStyle=fade;c.fillRect(0,0,512,512);
   // Offset cut-outs create an organic shore rather than a perfectly straight fade.
   c.globalCompositeOperation='destination-out';for(let i=0;i<9;i++){c.beginPath();c.ellipse(385+Math.sin(i*2)*36,i*65,55,28+i%3*9,Math.sin(i)*.5,0,Math.PI*2);c.fill();}
-  const map=new THREE.CanvasTexture(canvas);map.colorSpace=THREE.SRGBColorSpace;const mat=new THREE.MeshBasicMaterial({map,transparent:true,depthWrite:false,side:THREE.DoubleSide});materials.set(key,mat);return mat;
+  const map=new THREE.CanvasTexture(canvas);map.colorSpace=THREE.SRGBColorSpace;const mat=new THREE.MeshBasicMaterial({map,transparent:true,depthWrite:false,side:THREE.DoubleSide,forceSinglePass:true});materials.set(key,mat);return mat;
 }
 
 function decalMaterial(key,size,draw,{color='#ffffff',opacity=1}={}){
@@ -89,7 +89,7 @@ function decalMaterial(key,size,draw,{color='#ffffff',opacity=1}={}){
     const canvas=document.createElement('canvas');canvas.width=canvas.height=size;const c=canvas.getContext('2d');
     if(c){draw(c,size);map=new THREE.CanvasTexture(canvas);map.colorSpace=THREE.SRGBColorSpace;map.userData.originalProcedural=true;}
   }
-  const mat=new THREE.MeshBasicMaterial({color:map?'#ffffff':color,map,transparent:true,opacity,depthWrite:false,side:THREE.DoubleSide});materials.set(key,mat);return mat;
+  const mat=new THREE.MeshBasicMaterial({color:map?'#ffffff':color,map,transparent:true,opacity,depthWrite:false,side:THREE.DoubleSide,forceSinglePass:true});materials.set(key,mat);return mat;
 }
 
 /** Two triangles per soft contact shadow, shared by every actor and prop. */

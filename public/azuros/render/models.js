@@ -38,9 +38,11 @@ export function material(color, glow = 0) {
   if (!materials.has(key)) materials.set(key, new THREE.MeshStandardMaterial({ color, roughness: .86, metalness: .02, flatShading: true, emissive: color, emissiveIntensity: glow, side: THREE.DoubleSide }));
   return materials.get(key);
 }
+// Flat decals are drawn in one pass. A transparent double-sided material is otherwise drawn twice per
+// frame, and three.js re-evaluates its shader parameters on both passes.
 export function flat(color, opacity = 1) {
   const key = 'flat:' + color + ':' + opacity;
-  if (!materials.has(key)) materials.set(key, new THREE.MeshBasicMaterial({ color, transparent: opacity < 1, opacity, side: THREE.DoubleSide, depthWrite: opacity === 1 }));
+  if (!materials.has(key)) materials.set(key, new THREE.MeshBasicMaterial({ color, transparent: opacity < 1, opacity, side: THREE.DoubleSide, depthWrite: opacity === 1, forceSinglePass: true }));
   return materials.get(key);
 }
 export function mesh(geometry, mat, x = 0, y = 0, z = 0, sx = 1, sy = sx, sz = sx, parent) {

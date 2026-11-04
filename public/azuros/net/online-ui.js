@@ -9,6 +9,8 @@ export function createOnlineUI({onOpen=()=>{},onClose=()=>{},onGoogle,onPassword
   const content=layer.querySelector('#online-content'),message=layer.querySelector('#online-message');
   const team=document.createElement('aside');team.className='team-hud';team.hidden=true;team.setAttribute('aria-label','Ton groupe');document.body.append(team);
   const banner=document.createElement('div');banner.className='network-banner';banner.hidden=true;banner.setAttribute('role','status');document.body.append(banner);
+  // A short delay in the snapshots is shown as a small signal icon instead of a message.
+  const weak=document.createElement('div');weak.className='network-weak';weak.hidden=true;weak.setAttribute('role','img');weak.setAttribute('aria-label','Connexion instable');weak.innerHTML='<i></i><i></i><i></i>';document.body.append(weak);
   function show(next){if(!panel)lastFocus=document.activeElement;panel=next;layer.hidden=false;document.getElementById('game').inert=true;onOpen();render();queueMicrotask(()=>content.querySelector('input,button')?.focus());}
   function close(){panel='';busy=false;actionVersion++;layer.hidden=true;document.getElementById('game').inert=false;onClose();if(lastFocus?.isConnected)lastFocus.focus({preventScroll:true});}
   function render(){
@@ -51,12 +53,14 @@ export function createOnlineUI({onOpen=()=>{},onClose=()=>{},onGoogle,onPassword
     setAccountReady(value=true){available=value;button.classList.toggle('connected',Boolean(getAccount()?.user));button.querySelector('span').textContent=getAccount()?.user?'Mon compte':'Connexion';if(panel==='account')render();},
     setStatus(value){status=value;if(panel)message.textContent=value;},
     setRoom(next){room=next;if(next&&!getAccount()?.user)return;if(next?.phase==='lobby'){if(panel!=='lobby')show('lobby');else render();}else if(next?.phase==='playing'&&panel==='lobby')close();else if(panel==='lobby')render();},
-    update(state){
+    update(state,{lag=0}={}){
       document.body.dataset.online=String(Boolean(state.online));
       button.hidden=state.phase!=='menu';
       const party=state.party?.filter(m=>m.id!==state.player.playerId)||[],key=JSON.stringify(party.map(m=>[m.id,m.heroId,Math.ceil(m.player.hp),m.player.maxHp]));team.hidden=!party.length||!['playing','upgrade','paused','waiting','reconnecting'].includes(state.phase);
       if(key!==teamKey){teamKey=key;team.innerHTML=party.map(m=>{const h=getHero(m.heroId);return`<div class="ally-pill ${m.player.hp<=0?'downed':''}" style="--ally:${h.color}"><span class="ally-mark">${esc(h.name.slice(0,1))}</span><div><strong>${esc(m.name)}</strong><span class="ally-life" role="progressbar" aria-label="Vie de ${esc(m.name)}" aria-valuemin="0" aria-valuemax="${Math.ceil(m.player.maxHp)}" aria-valuenow="${Math.ceil(m.player.hp)}"><i style="width:${100*Math.max(0,m.player.hp/m.player.maxHp)}%"></i></span></div>${m.player.hp<=0?'<b>✚</b>':''}</div>`;}).join('');}
-      const text=state.phase==='waiting'?'Tes alliés choisissent leur pouvoir…':state.phase==='reconnecting'?'Reconnexion au groupe… Ta place est gardée 30 s.':state.player.hp<=0&&state.phase==='playing'?`À terre · un allié près de toi te relève${state.player.reviveProgress>0?' · '+Math.ceil(state.player.reviveProgress*100)+' %':''}`:'';banner.hidden=!text;banner.textContent=text;
+      // Being downed is shown in the world by the revive ring; the banner is kept for the network.
+      const text=state.phase==='waiting'?'Tes alliés choisissent leur pouvoir…':state.phase==='reconnecting'?'Reconnexion au groupe… Ta place est gardée 30 s.':'';banner.hidden=!text;banner.textContent=text;
+      weak.hidden=!(state.online&&state.phase==='playing'&&lag>900);
     }
   };
 }

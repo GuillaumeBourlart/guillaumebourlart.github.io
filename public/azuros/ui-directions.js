@@ -15,21 +15,24 @@ export function directionTargets(state){
 }
 export function createDirections(){
   const layer=document.createElement('div');layer.className='direction-layer';layer.hidden=true;document.body.append(layer);const nodes=new Map();
-  function node(target){let el=nodes.get(target.id);if(!el){el=document.createElement('div');el.innerHTML='<span class="direction-symbol" aria-hidden="true">↑</span><span class="direction-label"></span><small></small><span class="revive-meter" role="progressbar" aria-label="Réanimation" aria-valuemin="0" aria-valuemax="100"><i></i></span>';layer.append(el);nodes.set(target.id,el);}return el;}
+  function node(target){let el=nodes.get(target.id);if(!el){el=document.createElement('div');el.setAttribute('role','img');el.innerHTML='<span class="direction-symbol" aria-hidden="true">↑</span><b class="direction-cross" aria-hidden="true">✚</b><span class="direction-label"></span><small></small>';layer.append(el);nodes.set(target.id,el);}return el;}
+  // Reading layout makes the browser finish its styling work: only edge markers need it, a few times per second.
+  let hudRects=[],hudAt=-Infinity;
+  function hud(){const now=performance.now();if(now-hudAt>300){hudAt=now;hudRects=[...document.querySelectorAll('.vitals,#run-clock-button,#minimap-button,#map-button,#pause-button,#discovery-hint,.team-hud')].filter(el=>el.getClientRects().length).map(el=>el.getBoundingClientRect());}return hudRects;}
   return{update(state,project,{blocked=false}={}){
     layer.hidden=blocked||state.phase!=='playing';if(layer.hidden)return;const active=new Set(),occupied=[],width=window.innerWidth,height=window.innerHeight;
-    const hud=[...document.querySelectorAll('.vitals,#run-clock-button,#minimap-button,#map-button,#pause-button,#discovery-hint,.team-hud')].filter(el=>el.getClientRects().length).map(el=>el.getBoundingClientRect());
     for(const target of directionTargets(state)){
-      const p=project(target.x,target.z,1.4),visible=p.visible,near=Math.hypot(state.player.x-target.x,state.player.z-target.z)<=3,canRevive=state.player.hp>0;
-      if(target.kind==='rift'&&visible)continue;
-      const el=node(target);active.add(target.id);el.hidden=false;el.className=`direction-marker ${target.kind} ${visible?'on-screen':'off-screen'}`;
-      const position=visible?{x:clamp(p.x,64,width-64),y:clamp(p.y-30,105,height-95),angle:0}:edgePosition(p,width,height);
-      if(!visible)for(const rect of hud)if(position.x+48>rect.left&&position.x-48<rect.right&&position.y+40>rect.top&&position.y-24<rect.bottom)position.y=clamp(rect.bottom+34>height-100?rect.top-44:rect.bottom+34,112,height-100);
+      // On screen, the ring drawn around a downed ally (and the rift itself) already shows the way.
+      const p=project(target.x,target.z,1.4);if(p.visible)continue;
+      const el=node(target);active.add(target.id);el.hidden=false;el.className=`direction-marker ${target.kind} off-screen`;
+      const position=edgePosition(p,width,height);
+      for(const rect of hud())if(position.x+48>rect.left&&position.x-48<rect.right&&position.y+40>rect.top&&position.y-24<rect.bottom)position.y=clamp(rect.bottom+34>height-100?rect.top-44:rect.bottom+34,112,height-100);
       for(const other of occupied)if(Math.hypot(position.x-other.x,position.y-other.y)<58)position.y=clamp(other.y+58,112,height-100);occupied.push(position);
       el.style.left=position.x+'px';el.style.top=position.y+'px';el.querySelector('.direction-symbol').style.transform=`rotate(${position.angle}rad)`;
-      el.querySelector('.direction-symbol').textContent=visible?'✚':'↑';el.querySelector('.direction-label').textContent=target.label;
-      el.querySelector('small').textContent=visible?(near&&canRevive?'Reste près · '+Math.max(0,4*(1-target.progress)).toFixed(1).replace('.',',')+' s':canRevive?'Approche pour réanimer':'Un allié peut le relever'):Math.ceil(Math.hypot(state.player.x-target.x,state.player.z-target.z))+' m';
-      const meter=el.querySelector('.revive-meter');meter.hidden=target.kind!=='revive'||!visible;meter.setAttribute('aria-valuenow',Math.round(target.progress*100));meter.querySelector('i').style.transform=`scaleX(${target.progress})`;
+      // A downed ally is a marked arrow only; the rift keeps its name and distance.
+      const revive=target.kind==='revive',distance=Math.ceil(Math.hypot(state.player.x-target.x,state.player.z-target.z));
+      el.setAttribute('aria-label',revive?`${target.label} est à terre, ${distance} m`:`${target.label}, ${distance} m`);
+      el.querySelector('.direction-label').textContent=revive?'':target.label;el.querySelector('small').textContent=revive?'':distance+' m';
     }
     for(const[id,el]of nodes)if(!active.has(id)){el.remove();nodes.delete(id);}
   }};

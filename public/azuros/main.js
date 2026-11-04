@@ -61,7 +61,7 @@ function newGame(menu=false){
   const heroId=career.state.selectedHero,seed=menu?4701:Math.floor(Math.random()*0x100000000),runId=menu?`preview-${heroId}-${career.heroLevel(heroId)}`:`expedition-${Date.now().toString(36)}-${crypto.randomUUID?.()||Math.random().toString(36).slice(2)}`;
   return (menu?createGame:createSoloExpedition)({seed,heroId,heroLevel:career.heroLevel(heroId),bonuses:career.heroBonuses(heroId),runId});
 }
-function updateUI(){ui?.update(game.state,settlement);onlineUI?.update(game.state);}
+function updateUI(){ui?.update(game.state,settlement);onlineUI?.update(game.state,{lag:game.lag||0});}
 function settleIfEnded(){if(!game||currentUID||game.online||!['won','lost'].includes(game.state.phase)||lastSettled===game.state.runId)return;const result=career.settleRun(game.state);if(result.ok){lastSettled=game.state.runId;settlement=result;}else ui.showToast(result.error||'Le butin n’a pas pu être récupéré.');updateUI();}
 function rebuildCamp(){clearInput();settlement=null;resumeAfterModal=false;game=newGame(true);updateUI();if(pendingGuestLogin){pendingGuestLogin=false;syncAccount(account?.user);}}
 function handleMutation(result,message){if(!result?.ok){ui?.showToast(result?.error||'Cette action est indisponible.');return result;}if(result.saved===false)ui?.showToast('Progression en mémoire : exporte une copie dans les paramètres.');else if(message)ui?.showToast(message);return result;}

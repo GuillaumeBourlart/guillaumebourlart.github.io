@@ -12,7 +12,7 @@ export function createCombatTrails(parent,{software=false,capacity=software?240:
   const layer=new THREE.Group();layer.name='combat-trails';parent.add(layer);
   const geometry=new THREE.BufferGeometry();
   geometry.setAttribute('position',new THREE.Float32BufferAttribute([0,.5,0,.5,0,0,0,-.5,0,-.5,0,0],3));geometry.setIndex([0,1,2,0,2,3]);
-  const material=new THREE.MeshBasicMaterial({color:'#ffffff',transparent:true,opacity:.76,depthWrite:false,side:THREE.DoubleSide});
+  const material=new THREE.MeshBasicMaterial({color:'#ffffff',transparent:true,opacity:.76,depthWrite:false,side:THREE.DoubleSide,forceSinglePass:true});
   const batch=software?null:new THREE.InstancedMesh(geometry,material,capacity);
   if(batch){batch.name='projectile-trail-batch';batch.count=0;batch.frustumCulled=false;batch.instanceMatrix.setUsage(THREE.DynamicDrawUsage);layer.add(batch);}
   const particles=[],emitters=new Map(),color=new THREE.Color(),white=new THREE.Color('#ffffff'),matrix=new THREE.Matrix4(),quaternion=new THREE.Quaternion(),position=new THREE.Vector3(),scale=new THREE.Vector3(),rotation=new THREE.Euler();

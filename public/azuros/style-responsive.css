@@ -97,3 +97,8 @@
 @media(max-height:520px) and (orientation:landscape){
   .brand .brand-logo{width:120px;max-height:42px}
 }
+/* Phones: the objective card keeps its name, action and progress; hints take less room over the arena. */
+@media(max-width:700px) and (orientation:portrait),(max-height:540px) and (orientation:landscape){
+  .discovery-hint .objective-footer{display:none}
+  body:not([data-phase=menu]) .toast{font-size:10px;line-height:1.4;padding:6px 12px;max-width:min(300px,78vw)}
+}

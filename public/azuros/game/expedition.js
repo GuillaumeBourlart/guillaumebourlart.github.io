@@ -1,4 +1,5 @@
 import {createGame} from './simulation.js';
+import {REVIVE} from './coop-pacing.js';
 const STEP=1/60;
 const SHARED=['enemies','corpses','gems','breakables','pickups'];
 const dist=(a,b)=>Math.hypot(a.x-b.x,a.z-b.z);
@@ -78,7 +79,7 @@ export function createExpedition({roster,seed=12345,runId='expedition'}={}){
     for(const a of actors.values()){
       if(a.departed)continue;
       const p=a.game.state.player;
-      if(p.hp<=0){const near=alive.some(q=>dist(p,q)<=3);a.revive=near?a.revive+STEP:Math.max(0,a.revive-STEP*.5);p.reviveProgress=Math.min(1,a.revive/4);if(a.revive>=4){p.hp=p.maxHp*.4;p.invuln=3;a.revive=0;p.reviveProgress=0;a.game.coop.resetProjectiles();}}
+      if(p.hp<=0){const near=alive.some(q=>dist(p,q)<=REVIVE.radius);a.revive=near?a.revive+STEP:Math.max(0,a.revive-STEP*.5);p.reviveProgress=Math.min(1,a.revive/REVIVE.seconds);if(a.revive>=REVIVE.seconds){p.hp=p.maxHp*.4;p.invuln=3;a.revive=0;p.reviveProgress=0;a.game.coop.resetProjectiles();}}
     }
     offers();
   }

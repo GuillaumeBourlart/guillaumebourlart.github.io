@@ -1,7 +1,7 @@
 import * as THREE from '../vendor/three.module.js';
 import {GEO,group,mesh,flat} from './models.js';
 import {experienceReady} from '../game/feedback-timing.js';
-const glow=new THREE.MeshBasicMaterial({color:'#51ddff',transparent:true,opacity:.22,depthWrite:false,side:THREE.DoubleSide});
+const glow=new THREE.MeshBasicMaterial({color:'#51ddff',transparent:true,opacity:.22,depthWrite:false,side:THREE.DoubleSide,forceSinglePass:true});
 const dormant=new THREE.MeshBasicMaterial({color:'#66aac4'});
 const body=new THREE.MeshBasicMaterial({color:'#5ee1ff'}),core=new THREE.MeshBasicMaterial({color:'#f0ffff'}),rim=new THREE.MeshBasicMaterial({color:'#12334c',side:THREE.BackSide});
 export function makeExperience(){

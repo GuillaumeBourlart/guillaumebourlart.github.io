@@ -17,7 +17,9 @@ function glowTexture(){
 export function createWorldArt(parent,{software=false}={}){
   software=software||typeof document==='undefined';
   const root=new THREE.Group();root.name='enchanted-world-art';parent.add(root);
-  let key='',batches=[],reduced=false,ambient=[];
+  // The three instanced batches live as long as the scene. Recreating them recompiled their shader,
+  // a visible stall on phones every time the camera crossed a cell or a teammate streamed new chunks.
+  const CAPACITY=1100,cells=new Map();let key='',batches=[],reduced=false,ambient=[],cellRun='';
   const tmp=new THREE.Object3D(),color=new THREE.Color(),positions=new Float32Array(360*3),colors=new Float32Array(360*3),sizes=new Float32Array(360),phases=new Float32Array(360);
   let dust=null,texture=null;
   const grassGeo=new THREE.BufferGeometry();grassGeo.setAttribute('position',new THREE.Float32BufferAttribute([-.08,0,0,.08,0,0,.04,.33,.025, .08,0,0,.04,.33,.025,.18,.55,.03],3));grassGeo.computeVertexNormals();
@@ -27,21 +29,34 @@ export function createWorldArt(parent,{software=false}={}){
     const material=new THREE.ShaderMaterial({transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,uniforms:{map:{value:texture},time:{value:0},quiet:{value:0}},vertexShader:`attribute float aSize; attribute float aPhase; varying vec3 vColor; varying float vAlpha; uniform float time; uniform float quiet; void main(){vColor=color; vAlpha=mix(.45+.35*sin(time*1.3+aPhase),.5,quiet);gl_PointSize=aSize;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`,fragmentShader:`uniform sampler2D map;varying vec3 vColor;varying float vAlpha;void main(){gl_FragColor=vec4(vColor,texture2D(map,gl_PointCoord).a*vAlpha);}`,vertexColors:true});
     dust=new THREE.Points(geometry,material);dust.name='ambient-and-loot-motes';dust.frustumCulled=false;dust.renderOrder=9;root.add(dust);
   }
-  function clearBatches(){for(const b of batches){root.remove(b);b.dispose();b.material.dispose();}batches=[];}
+  function clearBatches(){for(const b of batches)b.count=0;}
+  function ensureBatches(){
+    if(batches.length)return;const material=new THREE.MeshStandardMaterial({roughness:.9,side:THREE.DoubleSide});
+    for(let type=0;type<3;type++){const batch=new THREE.InstancedMesh(type===0?grassGeo:type===1?petalGeo:stoneGeo,material,CAPACITY);batch.name=['wind-grass','wildflowers','ground-stones'][type];batch.userData.type=type;batch.frustumCulled=false;batch.setColorAt(0,color.set('#ffffff'));batch.count=0;root.add(batch);batches.push(batch);}
+  }
+  // Collision features never move within a run, so each 16 m cell is filtered once and remembered.
+  function cell(cx,cz,state){
+    const id=cx+':'+cz;let entry=cells.get(id);if(entry)return entry;
+    const x0=cx*16,z0=cz*16,near=(list,pad)=>(list||[]).filter(o=>o.x+(o.radius||1)+pad>x0&&o.x-(o.radius||1)-pad<x0+16&&o.z+(o.radius||1)+pad>z0&&o.z-(o.radius||1)-pad<z0+16);
+    const obstacles=near(state.obstacles,.3),traps=near(state.traps,.6),zones=near(state.zones,.4),pois=near(state.pois,2.1);
+    const clear=(x,z)=>Math.hypot(x,z)<5.4||obstacles.some(o=>Math.hypot(x-o.x,z-o.z)<(o.radius||1)+.3)||traps.some(o=>Math.hypot(x-o.x,z-o.z)<o.radius+.6)||zones.some(o=>Math.hypot(x-o.x,z-o.z)<o.radius+.4)||pois.some(o=>Math.hypot(x-o.x,z-o.z)<2.1);
+    entry={ambient:[],kept:[]};
+    for(const p of decorationCell(cx,cz,state.seed||0)){if(p.phase<.6)entry.ambient.push(p);if(Math.hypot(p.x,p.z)>state.arenaRadius+2||clear(p.x,p.z))continue;entry.kept.push(p);}
+    // Before the first world message the obstacles are unknown; such a cell is not remembered.
+    if(state.obstacles?.length){if(cells.size>900)cells.clear();cells.set(id,entry);}
+    return entry;
+  }
   function scatter(state,bounds){
-    const minX=Math.floor((bounds.minX-10)/16),maxX=Math.floor((bounds.maxX+10)/16),minZ=Math.floor((bounds.minZ-10)/16),maxZ=Math.floor((bounds.maxZ+10)/16),next=[minX,maxX,minZ,maxZ,state.runId,state.worldRevision,state.arenaRadius].join(':');if(next===key)return;key=next;clearBatches();if(software)return;
-    const pools=[[],[],[]],candidates=[];ambient=[];
-    const clear=(x,z)=>Math.hypot(x,z)<5.4||(state.obstacles||[]).some(o=>Math.hypot(x-o.x,z-o.z)<(o.radius||1)+.3)||(state.traps||[]).some(o=>Math.hypot(x-o.x,z-o.z)<o.radius+.6)||(state.zones||[]).some(o=>Math.hypot(x-o.x,z-o.z)<o.radius+.4)||(state.pois||[]).some(o=>Math.hypot(x-o.x,z-o.z)<2.1);
-    for(let cx=minX;cx<=maxX;cx++)for(let cz=minZ;cz<=maxZ;cz++)for(const p of decorationCell(cx,cz,state.seed||0)){
-      if(p.phase<.6)ambient.push(p);if(Math.hypot(p.x,p.z)>state.arenaRadius+2||clear(p.x,p.z))continue;candidates.push(p);
-    }
-    if(candidates.length>1100){const x=(bounds.minX+bounds.maxX)/2,z=(bounds.minZ+bounds.maxZ)/2;candidates.sort((a,b)=>(a.x-x)**2+(a.z-z)**2-((b.x-x)**2+(b.z-z)**2));}
-    for(const p of candidates.slice(0,1100))pools[p.type].push(p);
+    const run=[state.runId,state.seed,state.arenaRadius].join(':');if(run!==cellRun){cells.clear();cellRun=run;key='';}
+    const minX=Math.floor((bounds.minX-10)/16),maxX=Math.floor((bounds.maxX+10)/16),minZ=Math.floor((bounds.minZ-10)/16),maxZ=Math.floor((bounds.maxZ+10)/16),next=[minX,maxX,minZ,maxZ,run,state.obstacles?.length?1:0].join(':');if(next===key)return;key=next;if(software)return;
+    ensureBatches();const pools=[[],[],[]];let candidates=[];ambient=[];
+    for(let cx=minX;cx<=maxX;cx++)for(let cz=minZ;cz<=maxZ;cz++){const entry=cell(cx,cz,state);for(const p of entry.ambient)ambient.push(p);for(const p of entry.kept)candidates.push(p);}
+    if(candidates.length>CAPACITY){const x=(bounds.minX+bounds.maxX)/2,z=(bounds.minZ+bounds.maxZ)/2;candidates.sort((a,b)=>(a.x-x)**2+(a.z-z)**2-((b.x-x)**2+(b.z-z)**2));candidates=candidates.slice(0,CAPACITY);}
+    for(const p of candidates)pools[p.type].push(p);
     for(let type=0;type<3;type++){
-      const data=pools[type],geometry=type===0?grassGeo:type===1?petalGeo:stoneGeo,material=new THREE.MeshStandardMaterial({roughness:.9,side:THREE.DoubleSide});
-      const batch=new THREE.InstancedMesh(geometry,material,data.length);batch.name=['wind-grass','wildflowers','ground-stones'][type];batch.userData.data=data;batch.userData.type=type;batch.frustumCulled=false;
+      const data=pools[type],batch=batches[type];batch.userData.data=data;
       for(let i=0;i<data.length;i++){const p=data[i];tmp.position.set(p.x,type===1?.18:type===2?.07:0,p.z);tmp.rotation.set(0,p.a,0);tmp.scale.set(type===0?p.scale:.12*p.scale,type===0?p.scale:type===1?.08*p.scale:.09*p.scale,type===0?p.scale:.16*p.scale);tmp.updateMatrix();batch.setMatrixAt(i,tmp.matrix);batch.setColorAt(i,color.set(p.c));}
-      batch.instanceMatrix.needsUpdate=true;batch.instanceColor.needsUpdate=true;root.add(batch);batches.push(batch);
+      batch.count=data.length;batch.instanceMatrix.needsUpdate=true;batch.instanceColor.needsUpdate=true;
     }
   }
   function update(state,time,bounds,isMenu){
@@ -55,5 +70,5 @@ export function createWorldArt(parent,{software=false}={}){
     let visibleGems=0;for(const g of state.gems||[]){if(visibleGems>=50||g.x<bounds.minX||g.x>bounds.maxX||g.z<bounds.minZ||g.z>bounds.maxZ)continue;const phase=visibleGems++*1.6;add(g.x+Math.sin(t+phase)*.16,.85+Math.sin(t*1.5+phase)*.12,g.z+Math.cos(t+phase)*.16,'#73e7ff',6,phase);}
     dust.geometry.setDrawRange(0,count);for(const name of['position','color','aSize','aPhase'])dust.geometry.attributes[name].needsUpdate=true;dust.material.uniforms.time.value=t;dust.material.uniforms.quiet.value=reduced?1:0;
   }
-  return{update,setReducedMotion(v){reduced=!!v;},dispose(){clearBatches();if(dust){dust.geometry.dispose();dust.material.dispose();texture.dispose();}for(const g of[grassGeo,petalGeo,stoneGeo])g.dispose();parent.remove(root);}};
+  return{update,setReducedMotion(v){reduced=!!v;},dispose(){for(const b of batches){root.remove(b);b.dispose();}batches[0]?.material.dispose();batches=[];if(dust){dust.geometry.dispose();dust.material.dispose();texture.dispose();}for(const g of[grassGeo,petalGeo,stoneGeo])g.dispose();parent.remove(root);}};
 }

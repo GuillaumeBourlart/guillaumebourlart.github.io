@@ -6,7 +6,7 @@ import {staticAsset} from './asset-library.js';
 const clamp=(n,a=0,b=1)=>Math.max(a,Math.min(b,n));
 const phaseOf=id=>{let n=0;for(const c of String(id))n=(n*31+c.charCodeAt(0))%997;return n;};
 const inside=(o,b,margin=0)=>!b||(o.x>=b.minX-margin&&o.x<=b.maxX+margin&&o.z>=b.minZ-margin&&o.z<=b.maxZ+margin);
-function ownedMaterial(color,opacity=1){return new THREE.MeshBasicMaterial({color,transparent:opacity<1,opacity,side:THREE.DoubleSide,depthWrite:false});}
+function ownedMaterial(color,opacity=1){return new THREE.MeshBasicMaterial({color,transparent:opacity<1,opacity,side:THREE.DoubleSide,depthWrite:false,forceSinglePass:true});}
 function ownMesh(mat,...args){const m=mesh(GEO.plane,mat,...args);m.userData.uniqueMaterial=true;return m;}
 function makeZone(o){
   const g=group(),ice=o.type==='ice',r=o.radius||3;
